@@ -62,6 +62,7 @@ body.pv #main,body.pv #fab,body.pv #fbtn,body.pv #hbtns{visibility:hidden}
 #ann{position:fixed;inset:0;background:#000b;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
 .annbox{width:100%;max-width:520px;text-align:center}.annhd{color:#fff;font-weight:bold;margin-bottom:8px;font-size:16px}
 .annt{white-space:pre-wrap;word-break:break-word;text-align:left;min-height:120px;max-height:60vh;overflow:auto;font-size:18px}
+.gst{margin:6px 0;font-size:13px;word-break:break-all}.gst.ok{color:#085}.gst.ng{color:#c33}
 </style></head><body><div id="bg"></div>
 <header><button class="fbtn" id="fbtn">📁 フォルダ ▾</button><div class="ttl" id="ttl"></div><span id="hbtns"></span></header>
 <div id="fpanel"></div>
@@ -147,7 +148,7 @@ function normalize(){
  S.memos=S.memos||[];S.memos.forEach(m=>{m.tags=m.tags||[];m.hist=m.hist||[];m.rel=m.rel||[];m.imgs=m.imgs||[]});
  S.rem=(S.rem||[]).map(r=>({id:r.id||Math.random().toString(36).slice(2),time:r.time,msg:r.msg,days:r.days||[],on:r.on!==false}));
  if(!S.seeded){seedMemos().forEach(s=>{if(!S.memos.some(m=>m.title===s.title&&m.sys))S.memos.push(s)});S.seeded=1}
- S.trash=S.trash||[];S.bubble=S.bubble||{};S.ann=S.ann||null;S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
+ S.trash=S.trash||[];S.bubble=S.bubble||{};S.ann=S.ann||null;S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};S.gh=S.gh||{};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
  S.nav=S.nav||{}}
@@ -561,8 +562,8 @@ let fired={};setInterval(()=>{const d=new Date(),p=n=>String(n).padStart(2,"0"),
   if("Notification"in window&&Notification.permission==="granted")new Notification(APP,{body:r.msg});else alert("⏰ "+r.msg)}})},15000);
 
 // ================= 告知機能 =================
-// 仕組み: サーバーを使わず、ホストが書き出した announce.json を公開フォルダ(index.html と同じ場所)に置くと、
-// 各ユーザーが起動したときに読み込んで表示します。
+// ホストが「送信」を押すと、GitHub上の announce.json が更新され、公開ページ(GitHub Pages)に反映されます。
+// ユーザーは、アプリを開くたびに announce.json を読み込み、ログイン時とオプションの先頭に表示します。
 function cyrb53(str,seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)}
 const normPhrase=s=>String(s).normalize("NFKC").replace(/\s+/g,"");
 const HOSTH=3508222772028145;
@@ -598,17 +599,35 @@ async function checkAnnounce(){
   else if(r.status===404){S.ann=null;save()}
  }catch(e){}
  ANNBUSY=false;after();
- function after(){refreshDot();if(S.ann&&S.annSeen!==S.ann.id&&S.annHide!==S.ann.id)showAnn(S.ann,false);if(tab==="settings")renderSettings()}}
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!ED)checkAnnounce()});
+ function after(){refreshDot();if(S.ann&&S.annSeen!==S.ann.id&&S.annHide!==S.ann.id)showAnn(S.ann,false);if(tab==="settings"&&!HOST)renderSettings()}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!ED&&!HOST)checkAnnounce()});
 // ---- ホスト専用: パスワード欄に合言葉を入れて確定すると、告知の入力欄が出る
 function hostTry(el){if(cyrb53(normPhrase(el.value))!==HOSTH)return false;
  el.value="";HOST=true;$("#modal").style.display="none";if(tab!=="settings")go("settings");else renderSettings();
  setTimeout(()=>{const c=$("#hostcard");if(c)c.scrollIntoView({block:"start"})},50);return true}
 document.addEventListener("change",e=>{if(e.target.id==="tpw2"||e.target.id==="tpw")hostTry(e.target)});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.target.id==="tpw2"||e.target.id==="tpw")&&hostTry(e.target))e.preventDefault()});
-function hostCardHTML(){const D=S.hostDraft,B=D.bubble||{};
+// ---- GitHubへ直接送信(アクセストークンは、この端末にだけ保存。引き継ぎファイルには含まれません)
+const GHT="brm_ghtoken";
+function ghCfg(){const g=S.gh||{};const m=location.hostname.match(/^(.+)\.github\.io$/);
+ return{owner:g.owner||(m?m[1]:""),repo:g.repo||(m?(location.pathname.split("/")[1]||""):""),branch:g.branch||"",path:g.path||"announce.json"}}
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+async function ghErr(r){let m="";try{m=(await r.json()).message||""}catch(e){}
+ const hint=r.status===401?"(トークンが無効です)":r.status===403?"(トークンの権限が足りません。Contents の Read and write が必要です)":r.status===404?"(ユーザー名・リポジトリ名・ブランチ、またはトークンの対象リポジトリを確認してください)":r.status===409||r.status===422?"(競合しました。もう一度送信してください)":"";
+ return `${r.status} ${m} ${hint}`.trim()}
+async function ghPut(obj){const g=ghCfg(),tok=($("#ght")&&$("#ght").value.trim())||LS.getItem(GHT)||"";
+ if(!g.owner||!g.repo)throw new Error("ユーザー名とリポジトリ名を入れてください");
+ if(!tok)throw new Error("アクセストークンを入れてください");
+ const url=`https://api.github.com/repos/${encodeURIComponent(g.owner)}/${encodeURIComponent(g.repo)}/contents/${g.path.split("/").map(encodeURIComponent).join("/")}`;
+ const hd={Authorization:"Bearer "+tok,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};
+ let sha;let r=await fetch(url+(g.branch?`?ref=${encodeURIComponent(g.branch)}`:""),{headers:hd,cache:"no-store"});
+ if(r.ok){sha=(await r.json()).sha}else if(r.status!==404)throw new Error(await ghErr(r));
+ const body={message:obj.on?"お知らせを更新":"お知らせを取り下げ",content:b64(JSON.stringify(obj))};if(sha)body.sha=sha;if(g.branch)body.branch=g.branch;
+ r=await fetch(url,{method:"PUT",headers:{...hd,"Content-Type":"application/json"},body:JSON.stringify(body)});
+ if(!r.ok)throw new Error(await ghErr(r))}
+function hostCardHTML(){const D=S.hostDraft,B=D.bubble||{},g=ghCfg(),tok=LS.getItem(GHT)||"";
  return `<div class="card" id="hostcard" style="border:3px solid #c33"><b>📢 全員への告知(ホスト専用)</b>
- <small><br>書いた告知を announce.json として書き出します。公開しているフォルダ(index.html と同じ場所)に、同じ名前で上書きアップロードすると、ユーザーが次にアプリを開いたときにログイン画面に表示され、オプションの一番上にも載ります(設定ボタンに赤い印が付きます)。ホスティングの反映待ちで、数分かかることがあります。</small>
+ <small><br>書いて「送信」を押すと、GitHub上の announce.json が更新されます。公開ページへの反映には1〜数分かかり、その後ユーザーがアプリを開く(開き直す)と、ログイン画面に表示され、オプションの一番上にも載ります(⚙️に赤い印が付きます)。</small>
  <input id="htitle" placeholder="見出し(省略可)" value="${esc(D.title||"")}" maxlength="80">
  <textarea id="htext" style="min-height:120px" placeholder="告知の本文">${esc(D.text||"")}</textarea>
  <small>吹き出しの見た目(この告知だけに適用されます)</small>
@@ -617,14 +636,25 @@ function hostCardHTML(){const D=S.hostDraft,B=D.bubble||{};
  <small>書体</small><select id="hfont">${Object.entries(FONT_LABELS).map(([k,v])=>`<option value="${k}" ${(B.font||"")===k?"selected":""}>${v}</option>`).join("")}${B.fontData?`<option value="custom" ${B.font==="custom"?"selected":""}>📎 ${esc(B.fontName||"アップロードした書体")}</option>`:""}</select>
  <small>書体ファイル(1.5MBまで。告知ファイルの容量が増え、全員の読み込みが重くなります)</small><input type="file" id="hfile" accept=".ttf,.otf,.woff,.woff2,font/*"><button class="b g" id="hfx">書体ファイルを削除</button><br>
  <label>文字色 <input type="color" id="hcol" value="${B.color||"#222222"}" style="width:60px"></label> <button class="b g" id="hcx">文字色を戻す</button>
- <div style="margin-top:8px"><button class="b y" id="hprev">👀 ユーザー画面で確認</button> <button class="b" id="hsend">📤 送信(announce.json を書き出す)</button></div>
- <div><button class="b r" id="hwd">告知を取り下げる(空のannounce.jsonを書き出す)</button> <button class="b g" id="hload">${S.ann?"公開中の告知を読み込む":"(公開中の告知なし)"}</button> <button class="b g" id="hclose">ホスト画面を閉じる</button></div>
- <small>※ 合言葉はこの画面を開く鍵にすぎません。実際に全員へ届けるには、announce.json をアップロードできる権限(ホスティングの管理権限)が必要です。</small></div>
+ <div style="margin-top:8px"><button class="b y" id="hprev">👀 ユーザー画面で確認</button> <button class="b" id="hsend">📤 全員に送信(GitHub)</button></div>
+ <div id="hst" class="gst"></div>
+ <div><button class="b r" id="hwd">告知を取り下げる</button> <button class="b g" id="hload">${S.ann?"公開中の告知を読み込む":"(公開中の告知なし)"}</button> <button class="b g" id="hclose">ホスト画面を閉じる</button></div>
+ <div style="margin-top:10px;border-top:1px solid #ccc;padding-top:6px"><b>GitHub連携の設定</b>
+ <small><br>初回だけ入力します。アクセストークンは、このリポジトリだけを対象にした「Fine-grained personal access token」で、権限は Contents の「Read and write」だけにしてください。トークンはこの端末にだけ保存され、引き継ぎファイルには入りません。</small>
+ <input id="gho" placeholder="GitHubユーザー名" value="${esc(g.owner)}"><input id="ghr" placeholder="リポジトリ名" value="${esc(g.repo)}">
+ <input id="ghb" placeholder="ブランチ(空欄=既定のブランチ)" value="${esc(g.branch)}"><input id="ghp" placeholder="ファイル名" value="${esc(g.path)}">
+ <input id="ght" type="password" placeholder="アクセストークン" value="${esc(tok)}" autocomplete="off">
+ <label><input type="checkbox" id="ghm" style="width:auto" ${tok?"checked":""}> このスマホにトークンを記憶する</label><br>
+ <button class="b g" id="hfileout">予備: announce.json をファイルで書き出す</button></div></div>
  `}
 function bindHost(){const D=S.hostDraft;D.bubble=D.bubble||{};
+ const st=(m,ok)=>{const e=$("#hst");e.textContent=m;e.className="gst "+(ok===true?"ok":ok===false?"ng":"")};
  const sample=()=>{const s=$("#hsamp");s.textContent=D.text||"サンプル:告知はこのように表示されます";applyBubbleSpec(s,D.bubble,"HostFont")};
  const redraw=()=>{loadFontSpec(D.bubble,"HostFont",()=>{save();renderSettings()})};
  loadFontSpec(D.bubble,"HostFont",sample);
+ const cfg=()=>{S.gh={owner:$("#gho").value.trim(),repo:$("#ghr").value.trim(),branch:$("#ghb").value.trim(),path:($("#ghp").value.trim()||"announce.json").replace(/^\/+/,"")};
+  const t=$("#ght").value.trim();if($("#ghm").checked&&t)LS.setItem(GHT,t);else LS.removeItem(GHT);save()};
+ ["#gho","#ghr","#ghb","#ghp","#ght"].forEach(s=>$(s).onchange=cfg);$("#ghm").onchange=cfg;
  $("#htitle").oninput=e=>{D.title=e.target.value};$("#htitle").onchange=save;
  $("#htext").oninput=e=>{D.text=e.target.value;sample()};$("#htext").onchange=save;
  $("#himg").onchange=e=>{const f=e.target.files[0];if(!f)return;resize(f,700,d=>{D.bubble.img=d;redraw()})};
@@ -636,13 +666,14 @@ function bindHost(){const D=S.hostDraft;D.bubble=D.bubble||{};
  $("#hcol").oninput=e=>{D.bubble.color=e.target.value;sample()};$("#hcol").onchange=save;
  $("#hcx").onclick=()=>{delete D.bubble.color;save();renderSettings()};
  $("#hprev").onclick=()=>{if(!(D.text||"").trim())return alert("本文を入力してください");showAnn({title:D.title||"",text:D.text,bubble:D.bubble},true)};
- $("#hsend").onclick=()=>{if(!(D.text||"").trim())return alert("本文を入力してください");
-  if(!confirm("announce.json を書き出します。公開フォルダにアップロードすると、全員に告知されます。"))return;
-  const out={v:1,on:true,id:String(Date.now()),title:D.title||"",text:D.text,bubble:cleanBubble(D.bubble)};
-  dl(new Blob([JSON.stringify(out)],{type:"application/json"}),"announce.json");
-  alert("announce.json を書き出しました。\n公開しているフォルダ(index.html と同じ場所)に、同じ名前で上書きアップロードしてください。")};
- $("#hwd").onclick=()=>{if(!confirm("告知を取り下げる announce.json を書き出します。アップロードすると、全員の告知が消えます。"))return;
-  dl(new Blob([JSON.stringify({v:1,on:false,id:String(Date.now())})],{type:"application/json"}),"announce.json")};
+ const payload=()=>({v:1,on:true,id:String(Date.now()),title:D.title||"",text:D.text,bubble:cleanBubble(D.bubble)});
+ $("#hsend").onclick=async()=>{if(!(D.text||"").trim())return alert("本文を入力してください");cfg();
+  if(!confirm("この内容を、全員への告知として送信します。"))return;
+  st("送信中…");try{await ghPut(payload());st("送信しました。公開ページへの反映に1〜数分かかります。その後、ユーザーが開き直すと表示されます。",true)}catch(e){st("送信できませんでした: "+e.message,false)}};
+ $("#hwd").onclick=async()=>{cfg();if(!confirm("告知を取り下げます。全員の告知が消えます。"))return;
+  st("取り下げ中…");try{await ghPut({v:1,on:false,id:String(Date.now())});st("取り下げました。反映に1〜数分かかります。",true)}catch(e){st("取り下げできませんでした: "+e.message,false)}};
+ $("#hfileout").onclick=()=>{if(!(D.text||"").trim())return alert("本文を入力してください");
+  dl(new Blob([JSON.stringify(payload())],{type:"application/json"}),"announce.json");alert("announce.json を書き出しました。GitHubのリポジトリに、同じ名前でアップロードしてください。")};
  $("#hload").onclick=()=>{if(!S.ann)return;D.title=S.ann.title;D.text=S.ann.text;D.bubble={...S.ann.bubble};save();renderSettings()};
  $("#hclose").onclick=()=>{HOST=false;renderSettings()}}
 wall();loadBubbleFont(applyBubbleAll);go("memo");setTimeout(checkAnnounce,300);setTimeout(askStripImgs,500);
