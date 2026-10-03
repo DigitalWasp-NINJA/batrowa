@@ -58,6 +58,10 @@ body.pv #main,body.pv #fab,body.pv #fbtn,body.pv #hbtns{visibility:hidden}
 .pw{font-family:monospace;font-size:20px;letter-spacing:2px;text-align:center}
 #bg{position:fixed;left:0;top:0;width:100%;height:100vh;height:100lvh;z-index:-1;pointer-events:none;background:center/cover no-repeat}
 .bubs{border:4px solid #111;border-radius:20px;background:#fff;padding:16px;font-size:18px;line-height:1.5;margin:6px 0;min-height:90px}
+.ib{position:relative}.ib.dot::after{content:"";position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#e22;border:2px solid #fff}
+#ann{position:fixed;inset:0;background:#000b;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.annbox{width:100%;max-width:520px;text-align:center}.annhd{color:#fff;font-weight:bold;margin-bottom:8px;font-size:16px}
+.annt{white-space:pre-wrap;word-break:break-word;text-align:left;min-height:120px;max-height:60vh;overflow:auto;font-size:18px}
 </style></head><body><div id="bg"></div>
 <header><button class="fbtn" id="fbtn">📁 フォルダ ▾</button><div class="ttl" id="ttl"></div><span id="hbtns"></span></header>
 <div id="fpanel"></div>
@@ -71,6 +75,7 @@ body.pv #main,body.pv #fab,body.pv #fbtn,body.pv #hbtns{visibility:hidden}
 <div id="pvbar" class="hide"></div>
 <div id="modal"></div>
 <div id="zoom"><img id="zimg"></div>
+<div id="ann" class="hide"><div class="annbox"><div class="annhd" id="annhd"></div><div class="bubs annt" id="annp"></div><button class="b" id="annc" style="margin-top:10px;font-size:16px;padding:10px 24px">閉じる</button></div></div>
 <script>
 const $=s=>document.querySelector(s);
 (function(){if(window.CSS&&CSS.supports&&CSS.supports("height","100svh"))return;
@@ -142,7 +147,7 @@ function normalize(){
  S.memos=S.memos||[];S.memos.forEach(m=>{m.tags=m.tags||[];m.hist=m.hist||[];m.rel=m.rel||[];m.imgs=m.imgs||[]});
  S.rem=(S.rem||[]).map(r=>({id:r.id||Math.random().toString(36).slice(2),time:r.time,msg:r.msg,days:r.days||[],on:r.on!==false}));
  if(!S.seeded){seedMemos().forEach(s=>{if(!S.memos.some(m=>m.title===s.title&&m.sys))S.memos.push(s)});S.seeded=1}
- S.trash=S.trash||[];S.bubble=S.bubble||{};purgeTrash();
+ S.trash=S.trash||[];S.bubble=S.bubble||{};S.ann=S.ann||null;S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
  S.nav=S.nav||{}}
@@ -220,7 +225,8 @@ function go(t){tab=t;clearInterval(rt);rt=null;
  document.body.classList.toggle("wide",t==="settings");
  $("#fab").classList.toggle("hide",t!=="memo");$("#fbtn").classList.toggle("hide",t==="settings");$("#fpanel").style.display="none";
  const hb={memo:[["🎲","roulette"],["⚙️","settings"]],roulette:[["🏠","memo"],["⚙️","settings"]],settings:[["🏠","memo"],["🎲","roulette"]]}[t];
- $("#hbtns").innerHTML=hb.map(([i,p])=>`<button class="ib" data-go="${p}">${i}</button>`).join(" ");
+ $("#hbtns").innerHTML=hb.map(([i,p])=>`<button class="ib${p==="settings"&&annUnread()?" dot":""}" data-go="${p}">${i}</button>`).join(" ");
+ if(t==="settings"&&S.ann&&S.annRead!==S.ann.id){S.annRead=S.ann.id;save()}
  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
  if(t==="memo")renderMemo();if(t==="roulette")renderDice();if(t==="settings")renderSettings();
  say(t,"login")}
@@ -453,10 +459,11 @@ let RDAYS=new Set();
 const DN=["日","月","火","水","木","金","土"];
 function renderSettings(){$("#ttl").textContent="設定";
  purgeTrash();const used=(usedChars()/1e6).toFixed(1);
- let h=`<div class="card"><b>📲 引き継ぎ・端末間共有</b><small><br>サーバーを使わず、パスワード付きのファイルでデータを移します。自動同期ではありません。メモ・タグ・設定・立ち絵・吹き出し設定がすべて対象です。</small><br>
+ let h=annCardHTML()+`<div class="card"><b>📲 引き継ぎ・端末間共有</b><small><br>サーバーを使わず、パスワード付きのファイルでデータを移します。自動同期ではありません。メモ・タグ・設定・立ち絵・吹き出し設定がすべて対象です。</small><br>
  <button class="b" id="tx">書き出す(パスワード発行)</button>
  <div style="margin-top:6px"><input type="file" id="tfile"><input id="tpw2" placeholder="パスワード"><label><input type="radio" name="tm" value="merge" checked> 統合(新しい方を残す)</label> <label><input type="radio" name="tm" value="replace"> 置き換え</label><br><button class="b y" id="tim">読み込む</button></div>
  <small>保存データ: 約${used}MB / 目安5MB</small></div>
+ ${HOST?hostCardHTML():""}
  <div class="card"><b>🗑 ごみ箱</b><small><br>削除したメモを7日間保管します。7日を過ぎると自動で完全に消えます。(${S.trash.length}件)</small>
  ${S.trash.map((t,i)=>`<div class="memo"><b>${esc(t.m.title||"(無題)")}</b><br><small>削除: ${fmt(t.del)}・あと${Math.max(1,Math.ceil((t.del+7*864e5-Date.now())/864e5))}日・${len(t.m.body)}字・📁${esc(t.m.folder)}</small><br><button class="b" data-trr="${i}">♻ 復元</button><button class="b r" data-trd="${i}">完全に削除</button></div>`).join("")||"<br><small>ごみ箱は空です</small>"}
  ${S.trash.length?'<button class="b r" id="tre">ごみ箱を空にする</button>':""}</div>
@@ -492,6 +499,9 @@ function renderSettings(){$("#ttl").textContent="設定";
  $("#settings").innerHTML=h;
  const setn=(s,e,k,v)=>{S.nav[s]=S.nav[s]||{};S.nav[s][e]=S.nav[s][e]||{};if(v===null)delete S.nav[s][e][k];else S.nav[s][e][k]=v;save()};
  $("#tx").onclick=openTransfer;
+ if($("#annx"))$("#annx").onclick=()=>{S.annHide=S.ann.id;save();renderSettings()};
+ if($("#annb")){applyBubbleSpec($("#annb"),S.ann.bubble,"AnnFont")}
+ if(HOST)bindHost();
  document.querySelectorAll("[data-trr]").forEach(b=>b.onclick=()=>{const i=+b.dataset.trr,t=S.trash[i];if(!t)return;const m=t.m;
   if(!S.folders.includes(m.folder))m.folder="未分類";S.memos.push(m);
   (t.relBy||[]).forEach(id=>{const x=S.memos.find(y=>y.id===id);if(x&&x.rel.length<4&&!x.rel.includes(m.id))x.rel.push(m.id)});
@@ -537,16 +547,103 @@ function renderSettings(){$("#ttl").textContent="設定";
 function wall(){document.body.style.backgroundColor=S.wall.color;$("#bg").style.backgroundImage=S.wall.img?`url(${S.wall.img})`:"none"}
 const FONT_LABELS={"":"標準(ゴシック)",mincho:"明朝体",maru:"丸ゴシック風",hand:"手書き・教科書体風",mono:"等幅"};
 const FONTS={"":"",mincho:'"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif',maru:'"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif',hand:'"Yu Kyokasho","Klee One","UD Digi Kyokasho N-R","Comic Sans MS",cursive',mono:"monospace"};
-function applyBubbleTo(e){if(!e)return;const b=S.bubble||{};
- e.style.fontFamily=(b.font==="custom"&&b.fontData)?'"BubbleCustom",sans-serif':(FONTS[b.font||""]||"");
+function applyBubbleSpec(e,b,fam){if(!e)return;b=b||{};
+ e.style.fontFamily=(b.font==="custom"&&b.fontData)?`"${fam}",sans-serif`:(FONTS[b.font||""]||"");
  e.style.color=b.color||"";
  if(b.img){e.style.background=`url(${b.img}) center/100% 100% no-repeat`;e.style.border="none";e.style.borderRadius="0";e.style.padding="22px 26px"}
  else{e.style.background="";e.style.border="";e.style.borderRadius="";e.style.padding=""}}
+function applyBubbleTo(e){applyBubbleSpec(e,S.bubble,"BubbleCustom")}
 function applyBubbleAll(){applyBubbleTo($("#nbub"));applyBubbleTo($("#bsamp"))}
 function loadBubbleFont(cb){const b=S.bubble||{};if(!b.fontData){cb&&cb();return}
  try{new FontFace("BubbleCustom",`url(${b.fontData})`).load().then(x=>{document.fonts.add(x);cb&&cb()}).catch(()=>{alert("書体を読み込めませんでした");cb&&cb()})}catch(e){cb&&cb()}}
 let fired={};setInterval(()=>{const d=new Date(),p=n=>String(n).padStart(2,"0"),t=p(d.getHours())+":"+p(d.getMinutes()),day=d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());
  S.rem.forEach(r=>{const k=day+t+r.id;if(r.on&&r.time===t&&(!r.days.length||r.days.includes(d.getDay()))&&!fired[k]){fired[k]=1;
   if("Notification"in window&&Notification.permission==="granted")new Notification(APP,{body:r.msg});else alert("⏰ "+r.msg)}})},15000);
-wall();loadBubbleFont(applyBubbleAll);go("memo");setTimeout(askStripImgs,500);
+
+// ================= 告知機能 =================
+// 仕組み: サーバーを使わず、ホストが書き出した announce.json を公開フォルダ(index.html と同じ場所)に置くと、
+// 各ユーザーが起動したときに読み込んで表示します。
+function cyrb53(str,seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)}
+const normPhrase=s=>String(s).normalize("NFKC").replace(/\s+/g,"");
+const HOSTH=3508222772028145;
+let HOST=false;
+const annUnread=()=>!!(S.ann&&S.annRead!==S.ann.id&&S.annHide!==S.ann.id);
+function refreshDot(){const b=document.querySelector('#hbtns [data-go="settings"]');if(b)b.classList.toggle("dot",annUnread())}
+function annCardHTML(){const a=S.ann;if(!a||S.annHide===a.id)return"";
+ return `<div class="card"><b>📢 お知らせ</b>${a.title?` <b>${esc(a.title)}</b>`:""}<div class="bubs annt" id="annb">${esc(a.text)}</div><button class="b g" id="annx">非表示にする</button></div>\n `}
+function cleanBubble(b){b=b||{};const o={};
+ if(typeof b.img==="string"&&/^data:image\//.test(b.img))o.img=b.img;
+ if(typeof b.font==="string"&&(b.font==="custom"||b.font in FONTS))o.font=b.font;
+ if(typeof b.fontData==="string"&&/^data:/.test(b.fontData)){o.fontData=b.fontData;o.fontName=String(b.fontName||"")}
+ if(typeof b.color==="string"&&/^#[0-9a-f]{6}$/i.test(b.color))o.color=b.color;
+ return o}
+function loadFontSpec(b,fam,cb){if(!b||!b.fontData||b.font!=="custom"){cb&&cb();return}
+ try{new FontFace(fam,`url(${b.fontData})`).load().then(x=>{document.fonts.add(x);cb&&cb()}).catch(()=>{cb&&cb()})}catch(e){cb&&cb()}}
+function showAnn(a,preview){loadFontSpec(a.bubble,preview?"HostFont":"AnnFont",()=>{
+ $("#annhd").textContent=(preview?"【プレビュー】":"📢 お知らせ")+(a.title?" "+a.title:"");
+ const p=$("#annp");p.textContent=a.text;applyBubbleSpec(p,a.bubble,preview?"HostFont":"AnnFont");
+ $("#ann").classList.remove("hide");
+ const close=()=>{$("#ann").classList.add("hide");if(!preview){S.annSeen=a.id;save()}};
+ $("#annc").onclick=close;$("#ann").onclick=e=>{if(e.target.id==="ann")close()};
+ if(!preview){S.annSeen=a.id;save()}})}
+let ANNBUSY=false;
+async function checkAnnounce(){
+ if(!/^https?:$/.test(location.protocol)||ANNBUSY){return after()}
+ ANNBUSY=true;
+ try{const r=await fetch("announce.json?t="+Date.now(),{cache:"no-store"});
+  if(r.ok){const j=await r.json();
+   if(j&&j.on&&j.id&&typeof j.text==="string"&&j.text.trim()){S.ann={id:String(j.id),title:String(j.title||"").slice(0,80),text:j.text.slice(0,3000),bubble:cleanBubble(j.bubble)}}
+   else S.ann=null;
+   save()}
+  else if(r.status===404){S.ann=null;save()}
+ }catch(e){}
+ ANNBUSY=false;after();
+ function after(){refreshDot();if(S.ann&&S.annSeen!==S.ann.id&&S.annHide!==S.ann.id)showAnn(S.ann,false);if(tab==="settings")renderSettings()}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!ED)checkAnnounce()});
+// ---- ホスト専用: パスワード欄に合言葉を入れて確定すると、告知の入力欄が出る
+function hostTry(el){if(cyrb53(normPhrase(el.value))!==HOSTH)return false;
+ el.value="";HOST=true;$("#modal").style.display="none";if(tab!=="settings")go("settings");else renderSettings();
+ setTimeout(()=>{const c=$("#hostcard");if(c)c.scrollIntoView({block:"start"})},50);return true}
+document.addEventListener("change",e=>{if(e.target.id==="tpw2"||e.target.id==="tpw")hostTry(e.target)});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.target.id==="tpw2"||e.target.id==="tpw")&&hostTry(e.target))e.preventDefault()});
+function hostCardHTML(){const D=S.hostDraft,B=D.bubble||{};
+ return `<div class="card" id="hostcard" style="border:3px solid #c33"><b>📢 全員への告知(ホスト専用)</b>
+ <small><br>書いた告知を announce.json として書き出します。公開しているフォルダ(index.html と同じ場所)に、同じ名前で上書きアップロードすると、ユーザーが次にアプリを開いたときにログイン画面に表示され、オプションの一番上にも載ります(設定ボタンに赤い印が付きます)。ホスティングの反映待ちで、数分かかることがあります。</small>
+ <input id="htitle" placeholder="見出し(省略可)" value="${esc(D.title||"")}" maxlength="80">
+ <textarea id="htext" style="min-height:120px" placeholder="告知の本文">${esc(D.text||"")}</textarea>
+ <small>吹き出しの見た目(この告知だけに適用されます)</small>
+ <div class="bubs annt" id="hsamp">${esc(D.text||"サンプル:告知はこのように表示されます")}</div>
+ <small>吹き出し画像</small><input type="file" id="himg" accept="image/*"><button class="b g" id="himx">吹き出し画像を解除</button>
+ <small>書体</small><select id="hfont">${Object.entries(FONT_LABELS).map(([k,v])=>`<option value="${k}" ${(B.font||"")===k?"selected":""}>${v}</option>`).join("")}${B.fontData?`<option value="custom" ${B.font==="custom"?"selected":""}>📎 ${esc(B.fontName||"アップロードした書体")}</option>`:""}</select>
+ <small>書体ファイル(1.5MBまで。告知ファイルの容量が増え、全員の読み込みが重くなります)</small><input type="file" id="hfile" accept=".ttf,.otf,.woff,.woff2,font/*"><button class="b g" id="hfx">書体ファイルを削除</button><br>
+ <label>文字色 <input type="color" id="hcol" value="${B.color||"#222222"}" style="width:60px"></label> <button class="b g" id="hcx">文字色を戻す</button>
+ <div style="margin-top:8px"><button class="b y" id="hprev">👀 ユーザー画面で確認</button> <button class="b" id="hsend">📤 送信(announce.json を書き出す)</button></div>
+ <div><button class="b r" id="hwd">告知を取り下げる(空のannounce.jsonを書き出す)</button> <button class="b g" id="hload">${S.ann?"公開中の告知を読み込む":"(公開中の告知なし)"}</button> <button class="b g" id="hclose">ホスト画面を閉じる</button></div>
+ <small>※ 合言葉はこの画面を開く鍵にすぎません。実際に全員へ届けるには、announce.json をアップロードできる権限(ホスティングの管理権限)が必要です。</small></div>
+ `}
+function bindHost(){const D=S.hostDraft;D.bubble=D.bubble||{};
+ const sample=()=>{const s=$("#hsamp");s.textContent=D.text||"サンプル:告知はこのように表示されます";applyBubbleSpec(s,D.bubble,"HostFont")};
+ const redraw=()=>{loadFontSpec(D.bubble,"HostFont",()=>{save();renderSettings()})};
+ loadFontSpec(D.bubble,"HostFont",sample);
+ $("#htitle").oninput=e=>{D.title=e.target.value};$("#htitle").onchange=save;
+ $("#htext").oninput=e=>{D.text=e.target.value;sample()};$("#htext").onchange=save;
+ $("#himg").onchange=e=>{const f=e.target.files[0];if(!f)return;resize(f,700,d=>{D.bubble.img=d;redraw()})};
+ $("#himx").onclick=()=>{delete D.bubble.img;redraw()};
+ $("#hfont").onchange=e=>{D.bubble.font=e.target.value;save();loadFontSpec(D.bubble,"HostFont",sample)};
+ $("#hfile").onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>1500000){e.target.value="";return alert("書体ファイルが大きすぎます(1.5MBまで)")}
+  const r=new FileReader();r.onload=()=>{D.bubble.fontData=r.result;D.bubble.fontName=f.name;D.bubble.font="custom";redraw()};r.readAsDataURL(f)};
+ $("#hfx").onclick=()=>{delete D.bubble.fontData;delete D.bubble.fontName;if(D.bubble.font==="custom")D.bubble.font="";redraw()};
+ $("#hcol").oninput=e=>{D.bubble.color=e.target.value;sample()};$("#hcol").onchange=save;
+ $("#hcx").onclick=()=>{delete D.bubble.color;save();renderSettings()};
+ $("#hprev").onclick=()=>{if(!(D.text||"").trim())return alert("本文を入力してください");showAnn({title:D.title||"",text:D.text,bubble:D.bubble},true)};
+ $("#hsend").onclick=()=>{if(!(D.text||"").trim())return alert("本文を入力してください");
+  if(!confirm("announce.json を書き出します。公開フォルダにアップロードすると、全員に告知されます。"))return;
+  const out={v:1,on:true,id:String(Date.now()),title:D.title||"",text:D.text,bubble:cleanBubble(D.bubble)};
+  dl(new Blob([JSON.stringify(out)],{type:"application/json"}),"announce.json");
+  alert("announce.json を書き出しました。\n公開しているフォルダ(index.html と同じ場所)に、同じ名前で上書きアップロードしてください。")};
+ $("#hwd").onclick=()=>{if(!confirm("告知を取り下げる announce.json を書き出します。アップロードすると、全員の告知が消えます。"))return;
+  dl(new Blob([JSON.stringify({v:1,on:false,id:String(Date.now())})],{type:"application/json"}),"announce.json")};
+ $("#hload").onclick=()=>{if(!S.ann)return;D.title=S.ann.title;D.text=S.ann.text;D.bubble={...S.ann.bubble};save();renderSettings()};
+ $("#hclose").onclick=()=>{HOST=false;renderSettings()}}
+wall();loadBubbleFont(applyBubbleAll);go("memo");setTimeout(checkAnnounce,300);setTimeout(askStripImgs,500);
 </script></body></html>
