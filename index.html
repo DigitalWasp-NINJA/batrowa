@@ -430,10 +430,14 @@ async function dkey(pw,salt){const km=await crypto.subtle.importKey("raw",new Te
 async function encData(pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},await dkey(normPw(pw),salt),new TextEncoder().encode(JSON.stringify({app:APP,v:1,S}))));
  return JSON.stringify({t:"LBS1",s:b64(salt),i:b64(iv),d:b64(ct)})}
-async function decData(txt,pw){const j=JSON.parse(txt);if(j.t!=="LBS1")throw new Error("形式が違います");
+async function decData(txt,pw){txt=String(txt).replace(/^\uFEFF/,"").trim();let j;
+ try{j=JSON.parse(txt)}catch(e){throw new Error("引き継ぎファイルではありません。書き出した「.lbs」ファイル(または、コピーしたデータ全体)を指定してください")}
+ if(!j||j.t!=="LBS1")throw new Error("引き継ぎファイルの形式が違います");
  for(const p of [normPw(pw),normPw(pw).toUpperCase()]){try{const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(j.i)},await dkey(p,unb64(j.s)),unb64(j.d));return JSON.parse(new TextDecoder().decode(pt)).S}catch(e){}}
  throw new Error("パスワードが違うか、ファイルが壊れています")}
-function mergeIn(I){const ids=new Set(S.memos.map(m=>m.id));
+function readSrc(src){if(typeof src==="string")return Promise.resolve(src);if(src.text)return src.text();
+ return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(new Error("ファイルを読み取れませんでした"));r.readAsText(src)})}
+function mergeIn(I){I.memos=I.memos||[];
  I.memos.forEach(m=>{const l=S.memos.find(x=>x.id===m.id);if(!l)S.memos.push(m);else if((m.ts||0)>l.ts)Object.assign(l,m)});
  (I.folders||[]).forEach(f=>{if(!S.folders.includes(f))S.folders.push(f)});(I.tagList||[]).forEach(t=>{if(!S.tagList.includes(t))S.tagList.push(t)});(I.ng||[]).forEach(t=>{if(!S.ng.includes(t))S.ng.push(t)});
  (I.rem||[]).forEach(r=>{if(!S.rem.some(x=>x.id===r.id))S.rem.push(r)});
@@ -442,17 +446,21 @@ function mergeIn(I){const ids=new Set(S.memos.map(m=>m.id));
 function openTransfer(){const M=$("#modal");let pw=genPw();
  M.innerHTML=`<div class="card"><b>📲 引き継ぎデータを書き出す</b><small><br>データをパスワードで暗号化したファイルにします。別の端末で「読み込む」とパスワードを入力すると、同じメモが使えます。</small>
  <div class="ok">パスワード(控えてください)</div><input class="pw" id="tpw" value="${pw}"><button class="b g" id="tgen">🔁 再発行</button> <button class="b g" id="tcp">📋 パスワードをコピー</button><br><small>自分で決めたパスワードを入力しても構いません。</small><br>
- <button class="b" id="tgo">ファイルを書き出す</button> <button class="b g" id="tcl">閉じる</button><div id="tmsg"></div></div>`;
+ <button class="b" id="tgo">ファイルを書き出す</button> <button class="b y" id="tcpd">📋 データをコピー(ファイルが使えない場合)</button> <button class="b g" id="tcl">閉じる</button><div id="tmsg"></div></div>`;
  M.style.display="flex";
- $("#tgen").onclick=()=>$("#tpw").value=genPw();$("#tcp").onclick=()=>copy($("#tpw").value);$("#tcl").onclick=()=>M.style.display="none";
+ $("#tgen").onclick=()=>$("#tpw").value=genPw();
+ $("#tcpd").onclick=async()=>{const p=$("#tpw").value;if(normPw(p).length<6)return alert("パスワードは6文字以上にしてください");
+  if(!(window.crypto&&crypto.subtle))return alert("この環境では暗号化が使えません。https:// から始まるURLで開いてください。");
+  try{copy(await encData(p));$("#tmsg").innerHTML=`<div class="ok">暗号化したデータをコピーしました。別の端末の「読み込む」欄に貼り付け、パスワード「${esc(p)}」で読み込んでください。</div>`}catch(e){alert("失敗しました: "+e.message)}};$("#tcp").onclick=()=>copy($("#tpw").value);$("#tcl").onclick=()=>M.style.display="none";
  $("#tgo").onclick=async()=>{const p=$("#tpw").value;if(normPw(p).length<6)return alert("パスワードは6文字以上にしてください");
   if(!(window.crypto&&crypto.subtle))return alert("この環境では暗号化が使えません。https:// から始まるURLで開くか、別のブラウザをお試しください。");
   try{const t=await encData(p);dl(new Blob([t],{type:"application/octet-stream"}),fname("ローカルバトロワ空間_引き継ぎ","lbs"));
    $("#tmsg").innerHTML=`<div class="ok">書き出しました。ファイルを別の端末へ送り(メール・クラウド・AirDrop等)、パスワード「${esc(p)}」で読み込んでください。</div>`}catch(e){alert("失敗しました: "+e.message)}}}
-async function doImport(file,pw,mode){if(!(window.crypto&&crypto.subtle))return alert("この環境では復号が使えません。https:// から始まるURLで開いてください。");
- try{const I=await decData(await file.text(),pw);
-  if(mode==="replace"){if(!confirm("この端末の現在のデータを、読み込んだデータで置き換えます。"))return;S=I;normalize()}else mergeIn(I);
-  normalize();stripImgs();save();alert("読み込みました");go("memo")}catch(e){alert("読み込めませんでした: "+e.message)}}
+async function doImport(src,pw,mode){if(!(window.crypto&&crypto.subtle))return alert("この環境では復号が使えません。https:// から始まるURLで開いてください。");
+ try{const I=await decData(await readSrc(src),pw);
+  if(!I||!Array.isArray(I.memos))throw new Error("データの中身を読み取れませんでした");
+  if(mode==="replace"){if(!confirm("この端末の現在のデータを、読み込んだデータで置き換えます。"))return;S=I;S.nav=S.nav||{};normalize()}else mergeIn(I);
+  normalize();stripImgs();save();alert(`読み込みました(メモ${S.memos.length}件)`);go("memo")}catch(e){alert("読み込めませんでした: "+e.message)}}
 // ---- 設定
 function resize(file,max,cb){const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,max/Math.max(i.width,i.height));const c=document.createElement("canvas");c.width=i.width*k;c.height=i.height*k;c.getContext("2d").drawImage(i,0,0,c.width,c.height);cb(c.toDataURL("image/png"))};i.src=r.result};r.readAsDataURL(file)}
 let RDAYS=new Set();
@@ -461,7 +469,7 @@ function renderSettings(){$("#ttl").textContent="設定";
  purgeTrash();const used=(usedChars()/1e6).toFixed(1);
  let h=annCardHTML()+`<div class="card"><b>📲 引き継ぎ・端末間共有</b><small><br>サーバーを使わず、パスワード付きのファイルでデータを移します。自動同期ではありません。メモ・タグ・設定・立ち絵・吹き出し設定がすべて対象です。</small><br>
  <button class="b" id="tx">書き出す(パスワード発行)</button>
- <div style="margin-top:6px"><input type="file" id="tfile"><input id="tpw2" placeholder="パスワード"><label><input type="radio" name="tm" value="merge" checked> 統合(新しい方を残す)</label> <label><input type="radio" name="tm" value="replace"> 置き換え</label><br><button class="b y" id="tim">読み込む</button></div>
+ <div style="margin-top:6px"><input type="file" id="tfile"><textarea id="ttext" style="min-height:60px" placeholder="ファイルが選べない場合は、コピーした引き継ぎデータをここに貼り付けます"></textarea><input id="tpw2" placeholder="パスワード"><label><input type="radio" name="tm" value="merge" checked> 統合(新しい方を残す)</label> <label><input type="radio" name="tm" value="replace"> 置き換え</label><br><button class="b y" id="tim">読み込む</button></div>
  <small>保存データ: 約${used}MB / 目安5MB</small></div>
  ${HOST?hostCardHTML():""}
  <div class="card"><b>🗑 ごみ箱</b><small><br>削除したメモを7日間保管します。7日を過ぎると自動で完全に消えます。(${S.trash.length}件)</small>
@@ -518,7 +526,7 @@ function renderSettings(){$("#ttl").textContent="設定";
  $("#bfx").onclick=()=>{delete S.bubble.fontData;delete S.bubble.fontName;if(S.bubble.font==="custom")S.bubble.font="";save();applyBubbleAll();renderSettings();say("settings","change")};
  $("#bcol").oninput=e=>{S.bubble.color=e.target.value;applyBubbleAll()};$("#bcol").onchange=()=>{save();say("settings","change")};
  $("#bcx").onclick=()=>{delete S.bubble.color;save();applyBubbleAll();renderSettings();say("settings","change")};
- $("#tim").onclick=()=>{const f=$("#tfile").files[0];if(!f)return alert("ファイルを選んでください");if(!$("#tpw2").value)return alert("パスワードを入力してください");doImport(f,$("#tpw2").value,document.querySelector("input[name=tm]:checked").value)};
+ $("#tim").onclick=()=>{const f=$("#tfile").files[0],t=$("#ttext").value.trim();if(!f&&!t)return alert("ファイルを選ぶか、コピーしたデータを貼り付けてください");if(!$("#tpw2").value)return alert("パスワードを入力してください");doImport(f||t,$("#tpw2").value,document.querySelector("input[name=tm]:checked").value)};
  $("#ntadd").onclick=()=>{if(addTagNames($("#ntag").value).length){renderSettings();say("settings","change")}};
  document.querySelectorAll("[data-td]").forEach(a=>a.onclick=()=>{const t=S.tagList[+a.dataset.td];const u=S.memos.filter(m=>m.tags.includes(t)).length;
   if(!confirm(`タグ「${t}」を削除します。${u?`使用中の${u}件のメモからも外れます。`:""}`))return;
@@ -597,16 +605,19 @@ function showAnn(a,preview){loadFontSpec(a.bubble,preview?"HostFont":"AnnFont",(
  $("#annc").onclick=close;$("#ann").onclick=e=>{if(e.target.id==="ann")close()};
  if(!preview){S.annSeen=a.id;save()}})}
 let ANNBUSY=false;
+let LASTCHK=0;
+function settingsBusy(){const f=$("#tfile"),p=$("#tpw2"),t=$("#ttext"),a=document.activeElement;return !!((f&&f.files&&f.files.length)||(p&&p.value)||(t&&t.value)||(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))}
 async function checkAnnounce(){
+ var prev=S.ann&&S.ann.id;
  if(!/^https?:$/.test(location.protocol)||ANNBUSY)return after();
- ANNBUSY=true;
+ ANNBUSY=true;LASTCHK=Date.now();
  try{const r=await fetch("announce.txt?t="+Date.now(),{cache:"no-store"});
   if(r.ok){S.ann=textToAnn(await r.text());save()}
   else if(r.status===404){S.ann=null;save()}
  }catch(e){}
  ANNBUSY=false;after();
- function after(){refreshDot();if(S.ann&&S.annSeen!==S.ann.id&&S.annHide!==S.ann.id)showAnn(S.ann,false);if(tab==="settings"&&!HOST)renderSettings()}}
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!ED)checkAnnounce()});
+ function after(){refreshDot();if(S.ann&&S.annSeen!==S.ann.id&&S.annHide!==S.ann.id)showAnn(S.ann,false);if(tab==="settings"&&!HOST&&(S.ann&&S.ann.id)!==prev&&!settingsBusy())renderSettings()}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!ED&&Date.now()-LASTCHK>120000)checkAnnounce()});
 // ---- ホスト専用: パスワード欄に合言葉を入れて確定すると、告知の入力欄が出る
 function hostTry(el){if(cyrb53(normPhrase(el.value))!==HOSTH)return false;
  el.value="";HOST=true;$("#modal").style.display="none";if(tab!=="settings")go("settings");else renderSettings();
