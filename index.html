@@ -62,6 +62,11 @@ body.pv #main,body.pv #fab,body.pv #fbtn,body.pv #hbtns{visibility:hidden}
 #ann{position:fixed;inset:0;background:#000b;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
 .annbox{width:100%;max-width:520px;text-align:center}.annhd{color:#fff;font-weight:bold;margin-bottom:8px;font-size:16px}
 .annt{white-space:pre-wrap;word-break:break-word;text-align:left;min-height:120px;max-height:60vh;overflow:auto;font-size:18px}
+.annlist{max-height:42vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;margin:6px 0;padding-right:2px}
+#annlist{max-height:66vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.annitem{margin-bottom:12px;text-align:left}.annti{font-weight:bold;margin:2px 0 4px}
+#annlist .annti{color:#fff}.annd{color:#666;display:block;margin-top:2px}#annlist .annd{color:#ccc}
+.annt a{color:#0645ad;text-decoration:underline;word-break:break-all}.annh{color:#36c;text-decoration:underline;margin-left:8px;cursor:pointer}
 </style></head><body><div id="bg"></div>
 <header><button class="fbtn" id="fbtn">📁 フォルダ ▾</button><div class="ttl" id="ttl"></div><span id="hbtns"></span></header>
 <div id="fpanel"></div>
@@ -75,7 +80,7 @@ body.pv #main,body.pv #fab,body.pv #fbtn,body.pv #hbtns{visibility:hidden}
 <div id="pvbar" class="hide"></div>
 <div id="modal"></div>
 <div id="zoom"><img id="zimg"></div>
-<div id="ann" class="hide"><div class="annbox"><div class="annhd" id="annhd"></div><div class="bubs annt" id="annp"></div><button class="b" id="annc" style="margin-top:10px;font-size:16px;padding:10px 24px">閉じる</button></div></div>
+<div id="ann" class="hide"><div class="annbox"><div class="annhd" id="annhd"></div><div id="annlist"></div><button class="b" id="annc" style="margin-top:10px;font-size:16px;padding:10px 24px">閉じる</button></div></div>
 <script>
 const $=s=>document.querySelector(s);
 (function(){if(window.CSS&&CSS.supports&&CSS.supports("height","100svh"))return;
@@ -147,7 +152,7 @@ function normalize(){
  S.memos=S.memos||[];S.memos.forEach(m=>{m.tags=m.tags||[];m.hist=m.hist||[];m.rel=m.rel||[];m.imgs=m.imgs||[]});
  S.rem=(S.rem||[]).map(r=>({id:r.id||Math.random().toString(36).slice(2),time:r.time,msg:r.msg,days:r.days||[],on:r.on!==false}));
  if(!S.seeded){seedMemos().forEach(s=>{if(!S.memos.some(m=>m.title===s.title&&m.sys))S.memos.push(s)});S.seeded=1}
- S.trash=S.trash||[];S.bubble=S.bubble||{};S.ann=S.ann||null;S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
+ S.trash=S.trash||[];S.bubble=S.bubble||{};S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
  S.nav=S.nav||{}}
@@ -226,7 +231,7 @@ function go(t){tab=t;clearInterval(rt);rt=null;
  $("#fab").classList.toggle("hide",t!=="memo");$("#fbtn").classList.toggle("hide",t==="settings");$("#fpanel").style.display="none";
  const hb={memo:[["🎲","roulette"],["⚙️","settings"]],roulette:[["🏠","memo"],["⚙️","settings"]],settings:[["🏠","memo"],["🎲","roulette"]]}[t];
  $("#hbtns").innerHTML=hb.map(([i,p])=>`<button class="ib${p==="settings"&&annUnread()?" dot":""}" data-go="${p}">${i}</button>`).join(" ");
- if(t==="settings"&&S.ann&&S.annRead!==S.ann.id){S.annRead=S.ann.id;save()}
+ if(t==="settings")markAnnRead();
  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
  if(t==="memo")renderMemo();if(t==="roulette")renderDice();if(t==="settings")renderSettings();
  say(t,"login")}
@@ -507,8 +512,7 @@ function renderSettings(){$("#ttl").textContent="設定";
  $("#settings").innerHTML=h;
  const setn=(s,e,k,v)=>{S.nav[s]=S.nav[s]||{};S.nav[s][e]=S.nav[s][e]||{};if(v===null)delete S.nav[s][e][k];else S.nav[s][e][k]=v;save()};
  $("#tx").onclick=openTransfer;
- if($("#annx"))$("#annx").onclick=()=>{S.annHide=S.ann.id;save();renderSettings()};
- if($("#annb")){applyBubbleSpec($("#annb"),S.ann.bubble,"AnnFont")}
+ bindAnnList();
  if(HOST)bindHost();
  document.querySelectorAll("[data-trr]").forEach(b=>b.onclick=()=>{const i=+b.dataset.trr,t=S.trash[i];if(!t)return;const m=t.m;
   if(!S.folders.includes(m.folder))m.folder="未分類";S.memos.push(m);
@@ -568,55 +572,70 @@ let fired={};setInterval(()=>{const d=new Date(),p=n=>String(n).padStart(2,"0"),
  S.rem.forEach(r=>{const k=day+t+r.id;if(r.on&&r.time===t&&(!r.days.length||r.days.includes(d.getDay()))&&!fired[k]){fired[k]=1;
   if("Notification"in window&&Notification.permission==="granted")new Notification(APP,{body:r.msg});else alert("⏰ "+r.msg)}})},15000);
 
-// ================= 告知機能(GitHub Pages 用) =================
-// 告知は、公開フォルダの announce.txt に保存します。ホストが設定画面から「公開」を押すと、アプリがGitHubへ直接保存します。
-// 各ユーザーはアプリを開いたとき announce.txt を読み込み、ログイン画面とオプションの一番上に表示します。
+// ================= 告知機能(GitHub Pages 用・複数対応) =================
+// 告知は、公開フォルダの announce.txt に保存します(複数の告知を並べて保存できます)。
 function cyrb53(str,seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)}
 const normPhrase=s=>String(s).normalize("NFKC").replace(/\s+/g,"");
-const HOSTH=3508222772028145;
-let HOST=false,HOSTTOKEN=LS.getItem("brm_tk")||"";
-const annUnread=()=>!!(S.ann&&S.annRead!==S.ann.id&&S.annHide!==S.ann.id);
+const HOSTH=3508222772028145,MAXANN=20;
+let HOST=false,HOSTTOKEN=LS.getItem("brm_tk")||"",HMSG="";
+const unreadAnns=()=>S.anns.filter(a=>!S.annRead.includes(a.id)&&!S.annHide.includes(a.id));
+const annUnread=()=>unreadAnns().length>0;
+function markAnnRead(){let ch=false;S.anns.forEach(a=>{if(!S.annRead.includes(a.id)){S.annRead.push(a.id);ch=true}});if(ch){S.annRead=S.annRead.slice(-100);save()}}
 function refreshDot(){const b=document.querySelector('#hbtns [data-go="settings"]');if(b)b.classList.toggle("dot",annUnread())}
-function annCardHTML(){const a=S.ann;if(!a||S.annHide===a.id)return"";
- return `<div class="card"><b>📢 お知らせ</b>${a.title?` <b>${esc(a.title)}</b>`:""}<div class="bubs annt" id="annb">${esc(a.text)}</div><button class="b g" id="annx">非表示にする</button></div>\n `}
+// 本文中のURL(http/https)をリンクにする。先に全体をエスケープしてから変換するので安全です
+function linkify(raw){return esc(raw).replace(/https?:\/\/[A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]+/g,m=>{let u=m,rest="";
+ const k=u.search(/&(quot|lt|gt);/);if(k>=0){rest=u.slice(k);u=u.slice(0,k)}
+ const t=u.match(/[.,;:!?)\]'*]+$/);if(t){rest=t[0]+rest;u=u.slice(0,u.length-t[0].length)}
+ if(!/^https?:\/\/[^\/?#]+\.[^\/?#]+/.test(u)&&!/^https?:\/\/localhost/.test(u))return m;
+ return `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>${rest}`})}
+function annItemsHTML(list,withBtn){return list.map((a,i)=>`<div class="annitem">${a.title?`<div class="annti">${esc(a.title)}</div>`:""}<div class="bubs annt" data-ab="${i}">${linkify(a.text)}</div><small class="annd">${/^\d{12,}$/.test(a.id)?fmt(+a.id):""}${withBtn?`<a class="annh" data-hide="${esc(a.id)}">非表示にする</a>`:""}</small></div>`).join("")}
+function applyAnnBubbles(root,list,pfx){list.forEach((a,i)=>{const e=root.querySelector(`[data-ab="${i}"]`);applyBubbleSpec(e,a.bubble,pfx+i);loadFontSpec(a.bubble,pfx+i)})}
+// オプションの一番上: 独立した「お知らせ欄」(この欄だけスクロールできます)
+function annCardHTML(){if(!S.anns.length)return"";const vis=S.anns.filter(a=>!S.annHide.includes(a.id)),hid=S.anns.length-vis.length;
+ return `<div class="card" id="anncard"><b>📢 お知らせ</b> <small>(${vis.length}件)</small>${vis.length?`<div class="annlist" id="annset">${annItemsHTML(vis,true)}</div>`:"<br><small>表示するお知らせはありません</small>"}${hid?`<small><a id="annshow" class="annh" style="margin-left:0">非表示にした${hid}件を再表示</a></small>`:""}</div>\n `}
+function bindAnnList(){const root=$("#annset");
+ if(root){const vis=S.anns.filter(a=>!S.annHide.includes(a.id));applyAnnBubbles(root,vis,"AS");
+  root.querySelectorAll("[data-hide]").forEach(b=>b.onclick=()=>{S.annHide.push(b.dataset.hide);save();renderSettings()})}
+ if($("#annshow"))$("#annshow").onclick=()=>{S.annHide=[];save();renderSettings()}}
 function cleanBubble(b){b=b||{};const o={};
  if(typeof b.img==="string"&&/^data:image\//.test(b.img))o.img=b.img;
  if(typeof b.font==="string"&&(b.font==="custom"||b.font in FONTS))o.font=b.font;
  if(typeof b.fontData==="string"&&/^data:/.test(b.fontData)){o.fontData=b.fontData;o.fontName=String(b.fontName||"")}
  if(typeof b.color==="string"&&/^#[0-9a-f]{6}$/i.test(b.color))o.color=b.color;
  return o}
-// 告知ファイル(announce.txt)の書式: 先頭に「項目: 値」の行、「---」の行の後ろが本文
+// 告知ファイル(announce.txt)の書式: 告知ごとに「項目: 値」の行 → 「---」の行 → 本文。告知と告知の間は「=====」の行
 function annToText(o){const b=o.bubble||{},one=s=>String(s||"").replace(/[\r\n]+/g," ");
- const L=["# ローカルバトロワ空間 告知ファイル(アプリが自動で書き込みます。手で編集しないでください)","on: "+(o.on?1:0),"id: "+o.id,"title: "+one(o.title)];
+ const L=["on: "+(o.on?1:0),"id: "+o.id,"title: "+one(o.title)];
  if(b.font)L.push("font: "+b.font);if(b.color)L.push("color: "+b.color);if(b.img)L.push("img: "+b.img);
  if(b.fontData){L.push("fontdata: "+b.fontData);L.push("fontname: "+one(b.fontName))}
- L.push("---");L.push(o.text||"");return L.join("\n")}
+ L.push("---");L.push(String(o.text||"").replace(/^={5,}$/gm,"===="));return L.join("\n")}
+function annsToText(list){return ["# ローカルバトロワ空間 告知ファイル(アプリが自動で書き込みます。手で編集しないでください)"].concat(list.map(a=>annToText({...a,on:1}))).join("\n=====\n")}
 function textToAnn(t){t=String(t).replace(/\r/g,"");const i=t.indexOf("\n---\n");if(i<0)return null;
  const m={};t.slice(0,i).split("\n").forEach(l=>{const k=l.indexOf(": ");if(l[0]!=="#"&&k>0)m[l.slice(0,k)]=l.slice(k+2)});
  const body=t.slice(i+5);if(m.on!=="1"||!m.id||!body.trim())return null;
  return{id:m.id,title:(m.title||"").slice(0,80),text:body.slice(0,3000),bubble:cleanBubble({img:m.img,font:m.font,color:m.color,fontData:m.fontdata,fontName:m.fontname})}}
+function textToAnns(t){const seen=new Set();return String(t).replace(/\r/g,"").split(/\n={5}\n/).map(textToAnn).filter(a=>a&&!seen.has(a.id)&&seen.add(a.id)).slice(0,MAXANN)}
 function loadFontSpec(b,fam,cb){if(!b||!b.fontData||b.font!=="custom"){cb&&cb();return}
  try{new FontFace(fam,`url(${b.fontData})`).load().then(x=>{document.fonts.add(x);cb&&cb()}).catch(()=>{cb&&cb()})}catch(e){cb&&cb()}}
-function showAnn(a,preview){loadFontSpec(a.bubble,preview?"HostFont":"AnnFont",()=>{
- $("#annhd").textContent=(preview?"【プレビュー】":"📢 お知らせ")+(a.title?" "+a.title:"");
- const p=$("#annp");p.textContent=a.text;applyBubbleSpec(p,a.bubble,preview?"HostFont":"AnnFont");
+// ログイン時のポップアップ: 新しいお知らせをまとめて表示(この欄だけスクロールできます)
+function showAnns(list,preview){const box=$("#annlist");box.innerHTML=annItemsHTML(list,false);applyAnnBubbles(box,list,preview?"AH":"AP");
+ $("#annhd").textContent=(preview?"【プレビュー】":"📢 お知らせ")+(list.length>1?`(${list.length}件)`:"");
  $("#ann").classList.remove("hide");
- const close=()=>{$("#ann").classList.add("hide");if(!preview){S.annSeen=a.id;save()}};
+ const mark=()=>{list.forEach(a=>{if(!S.annSeen.includes(a.id))S.annSeen.push(a.id)});S.annSeen=S.annSeen.slice(-100);save()};
+ const close=()=>{$("#ann").classList.add("hide")};
  $("#annc").onclick=close;$("#ann").onclick=e=>{if(e.target.id==="ann")close()};
- if(!preview){S.annSeen=a.id;save()}})}
-let ANNBUSY=false;
-let LASTCHK=0;
+ if(!preview)mark()}
+let ANNBUSY=false,LASTCHK=0;
 function settingsBusy(){const f=$("#tfile"),p=$("#tpw2"),t=$("#ttext"),a=document.activeElement;return !!((f&&f.files&&f.files.length)||(p&&p.value)||(t&&t.value)||(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))}
-async function checkAnnounce(){
- var prev=S.ann&&S.ann.id;
+async function checkAnnounce(){var prev=JSON.stringify(S.anns.map(a=>a.id));
  if(!/^https?:$/.test(location.protocol)||ANNBUSY)return after();
  ANNBUSY=true;LASTCHK=Date.now();
  try{const r=await fetch("announce.txt?t="+Date.now(),{cache:"no-store"});
-  if(r.ok){S.ann=textToAnn(await r.text());save()}
-  else if(r.status===404){S.ann=null;save()}
+  if(r.ok){S.anns=textToAnns(await r.text());save()}else if(r.status===404){S.anns=[];save()}
  }catch(e){}
  ANNBUSY=false;after();
- function after(){refreshDot();if(S.ann&&S.annSeen!==S.ann.id&&S.annHide!==S.ann.id)showAnn(S.ann,false);if(tab==="settings"&&!HOST&&(S.ann&&S.ann.id)!==prev&&!settingsBusy())renderSettings()}}
+ function after(){refreshDot();const un=S.anns.filter(a=>!S.annSeen.includes(a.id)&&!S.annHide.includes(a.id));if(un.length)showAnns(un,false);
+  if(tab==="settings"&&!HOST&&JSON.stringify(S.anns.map(a=>a.id))!==prev&&!settingsBusy())renderSettings()}}
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!ED&&Date.now()-LASTCHK>120000)checkAnnounce()});
 // ---- ホスト専用: パスワード欄に合言葉を入れて確定すると、告知の入力欄が出る
 function hostTry(el){if(cyrb53(normPhrase(el.value))!==HOSTH)return false;
@@ -626,19 +645,31 @@ document.addEventListener("change",e=>{if(e.target.id==="tpw2"||e.target.id==="t
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.target.id==="tpw2"||e.target.id==="tpw")&&hostTry(e.target))e.preventDefault()});
 const defaultRepo=()=>{const m=location.hostname.match(/^([^.]+)\.github\.io$/),seg=location.pathname.split("/").filter(Boolean)[0];return m&&seg?m[1]+"/"+seg:"digitalwasp-ninja/batrowa"};
 function toB64(str){const by=new TextEncoder().encode(str);let bin="";for(let i=0;i<by.length;i+=0x8000)bin+=String.fromCharCode.apply(null,by.subarray(i,i+0x8000));return btoa(bin)}
-async function ghPublish(text,msg){const repo=(S.hostRepo||defaultRepo()).trim();
+// GitHub: 公開中の announce.txt を読み、変更を加えて保存する(他の告知を消さないよう、保存の直前に最新を読み直します)
+async function ghGet(){const repo=(S.hostRepo||defaultRepo()).trim();
  if(!/^[\w.-]+\/[\w.-]+$/.test(repo))throw new Error("リポジトリ名は「ユーザー名/リポジトリ名」の形で入力してください");
  if(!HOSTTOKEN)throw new Error("GitHubトークンを入力してください");
  const api=`https://api.github.com/repos/${repo}/contents/announce.txt`,H={Authorization:"Bearer "+HOSTTOKEN,Accept:"application/vnd.github+json"};
- let sha;const g=await fetch(api,{headers:H});
- if(g.ok)sha=(await g.json()).sha;else if(g.status!==404)throw new Error(g.status===401?"トークンが正しくありません(401)":"GitHubに接続できません("+g.status+")");
- const p=await fetch(api,{method:"PUT",headers:{...H,"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:toB64(text),sha})});
- if(!p.ok)throw new Error(p.status===403||p.status===404?"保存する権限がありません("+p.status+")。トークンの権限(Contents: Read and write)と対象リポジトリを確認してください":"保存に失敗しました("+p.status+")")}
+ const g=await fetch(api,{headers:H});
+ if(g.status===404)return{api,H,sha:undefined,list:[]};
+ if(!g.ok)throw new Error(g.status===401?"トークンが正しくありません(401)":"GitHubに接続できません("+g.status+")");
+ const j=await g.json();let b=j.content;
+ if(!b||j.encoding!=="base64"){const bl=await(await fetch(j.git_url,{headers:H})).json();b=bl.content}
+ const text=new TextDecoder().decode(Uint8Array.from(atob(String(b).replace(/\s/g,"")),c=>c.charCodeAt(0)));
+ return{api,H,sha:j.sha,list:textToAnns(text)}}
+async function ghUpdate(mod,msg){const g=await ghGet(),next=mod(g.list.slice()).slice(0,MAXANN);
+ const p=await fetch(g.api,{method:"PUT",headers:{...g.H,"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:toB64(annsToText(next)),sha:g.sha})});
+ if(!p.ok)throw new Error(p.status===403||p.status===404?"保存する権限がありません("+p.status+")。トークンの権限(Contents: Read and write)と対象リポジトリを確認してください":p.status===409||p.status===422?"同時に更新されました。もう一度お試しください("+p.status+")":"保存に失敗しました("+p.status+")");
+ return next}
 function hostCardHTML(){const D=S.hostDraft,B=D.bubble||{},repo=S.hostRepo||defaultRepo();
  return `<div class="card" id="hostcard" style="border:3px solid #c33"><b>📢 全員への告知(ホスト専用)</b>
- <small><br>本文を書いて「公開」を押すと、GitHubの announce.txt に保存されます。ユーザーが次にアプリを開いたとき、ログイン画面とオプションの一番上に表示され、設定ボタンに赤い印が付きます。GitHub Pagesの反映に、1〜2分かかります。</small>
+ <small><br>告知は複数、並べて公開できます(最大${MAXANN}件・新しい順)。「公開」を押すとGitHubの announce.txt に保存され、ユーザーが次にアプリを開いたとき、ログイン画面とオプションの「お知らせ欄」に表示されます。GitHub Pagesの反映に、1〜2分かかります。本文のURL(http/https)は、タップして開けるリンクになります。</small>
+ <div style="margin:6px 0;padding:6px;background:#fff6f6;border-radius:6px"><b style="font-size:13px">公開中の告知(${S.anns.length}件)</b> <small>※最後に読み込んだ内容です</small>
+ ${S.anns.map((a,i)=>`<div class="memo"><b>${esc(a.title||"(見出しなし)")}</b> <small>${esc(a.text.slice(0,28))}${a.text.length>28?"…":""}</small><br><button class="b g" data-hed="${i}">編集</button><button class="b r" data-hdel="${i}">削除して公開</button></div>`).join("")||"<br><small>公開中の告知はありません</small>"}
+ <button class="b g" id="hrefresh">🔄 最新を取得</button></div>
+ <b style="font-size:13px">${D.editId?"✏ 告知を編集中":"✚ 新しい告知を書く"}</b>${D.editId?` <button class="b g" id="hnew">新規作成に切り替え</button>`:""}
  <input id="htitle" placeholder="見出し(省略可)" value="${esc(D.title||"")}" maxlength="80">
- <textarea id="htext" style="min-height:120px" placeholder="告知の本文">${esc(D.text||"")}</textarea>
+ <textarea id="htext" style="min-height:120px" placeholder="告知の本文(URLを書くとリンクになります)">${esc(D.text||"")}</textarea>
  <small>吹き出しの見た目(この告知だけに適用されます)</small>
  <div class="bubs annt" id="hsamp"></div>
  <small>吹き出し画像</small><input type="file" id="himg" accept="image/*"><button class="b g" id="himx">吹き出し画像を解除</button>
@@ -649,17 +680,22 @@ function hostCardHTML(){const D=S.hostDraft,B=D.bubble||{},repo=S.hostRepo||defa
  <input id="htk" type="password" placeholder="GitHubトークン(この端末の中だけで使います)" value="${esc(HOSTTOKEN)}" autocomplete="off">
  <label style="font-size:13px"><input type="checkbox" id="htks" style="width:auto" ${LS.getItem("brm_tk")?"checked":""}> このトークンをこの端末に保存する(共有端末ではオフに)</label>
  <small>トークンは、GitHub の Settings → Developer settings → Fine-grained tokens で、このリポジトリだけを選び「Contents: Read and write」を許可して作ります。引き継ぎファイルには含まれません。</small>
- <div style="margin-top:8px"><button class="b y" id="hprev">👀 ユーザー画面で確認</button> <button class="b" id="hsend">📤 公開(GitHubに保存)</button></div>
- <div><button class="b r" id="hwd">告知を取り下げる</button> <button class="b g" id="hcopy">📋 告知ファイルの内容をコピー</button> <button class="b g" id="hload">${S.ann?"公開中の告知を読み込む":"(公開中の告知なし)"}</button> <button class="b g" id="hclose">ホスト画面を閉じる</button></div>
- <div id="hmsg" class="memo" style="font-size:13px"></div>
+ ${D.editId?`<label style="font-size:13px"><input type="checkbox" id="hre" style="width:auto"> 更新を再通知する(新しい告知として、もう一度ログイン画面に出す)</label>`:""}
+ <div style="margin-top:8px"><button class="b y" id="hprev">👀 ユーザー画面で確認</button> <button class="b" id="hsend">📤 ${D.editId?"上書きして公開":"追加して公開"}</button></div>
+ <div><button class="b r" id="hwd">すべての告知を取り下げる</button> <button class="b g" id="hcopy">📋 告知ファイルの内容をコピー</button> <button class="b g" id="hclose">ホスト画面を閉じる</button></div>
+ <div id="hmsg" class="memo" style="font-size:13px">${HMSG}</div>
  <small>※ 合言葉は、この画面を開く鍵にすぎません。実際に告知を公開できるのは、GitHubの書き込み権限を持つトークンがある場合だけです。トークンは他人に教えないでください。手動で公開する場合は「内容をコピー」して、GitHubの <a href="https://github.com/${esc(repo)}/new/main?filename=announce.txt" target="_blank" rel="noopener noreferrer" style="color:#36c">announce.txt の作成画面</a>に貼り付けてください(すでにある場合は、そのファイルの編集画面に貼り付けます)。</small></div>
  `}
 function bindHost(){const D=S.hostDraft;D.bubble=D.bubble||{};
- const msg=(t,ok)=>{$("#hmsg").innerHTML=`<span style="color:${ok?"#080":"#c33"}">${esc(t)}</span>`};
- const sample=()=>{const s=$("#hsamp");s.textContent=D.text||"サンプル:告知はこのように表示されます";applyBubbleSpec(s,D.bubble,"HostFont")};
+ const msg=(t,ok)=>{HMSG=`<span style="color:${ok?"#080":"#c33"}">${esc(t)}</span>`;const e=$("#hmsg");if(e)e.innerHTML=HMSG};
+ const sample=()=>{const s=$("#hsamp");s.innerHTML=linkify(D.text||"サンプル:告知はこのように表示されます");applyBubbleSpec(s,D.bubble,"HostFont")};
  const redraw=()=>{loadFontSpec(D.bubble,"HostFont",()=>{save();renderSettings()})};
- const cur=()=>({on:1,id:String(Date.now()),title:D.title||"",text:D.text||"",bubble:cleanBubble(D.bubble)});
- loadFontSpec(D.bubble,"HostFont",sample);
+ const mk=id=>({id,title:D.title||"",text:D.text||"",bubble:cleanBubble(D.bubble)});
+ const need=()=>{if(!(D.text||"").trim()){alert("本文を入力してください");return false}return true};
+ const addOp=()=>{const re=$("#hre")&&$("#hre").checked;return list=>{const nid=String(Date.now());
+  if(D.editId){const i=list.findIndex(a=>a.id===D.editId);if(i>=0)list[i]=mk(re?nid:D.editId);else list.unshift(mk(nid))}else list.unshift(mk(nid));return list}};
+ const done=(next,t)=>{S.anns=next;save();D.editId=null;D.title="";D.text="";HMSG=`<span style="color:#080">${esc(t)}</span>`;renderSettings();refreshDot()};
+ loadFontSpec(D.bubble,"HostFont",sample);sample();
  $("#htitle").oninput=e=>{D.title=e.target.value};$("#htitle").onchange=save;
  $("#htext").oninput=e=>{D.text=e.target.value;sample()};$("#htext").onchange=save;
  $("#himg").onchange=e=>{const f=e.target.files[0];if(!f)return;resize(f,700,d=>{D.bubble.img=d;redraw()})};
@@ -673,17 +709,23 @@ function bindHost(){const D=S.hostDraft;D.bubble=D.bubble||{};
  $("#hrepo").onchange=e=>{S.hostRepo=e.target.value.trim();save()};
  $("#htk").onchange=e=>{HOSTTOKEN=e.target.value.trim();if($("#htks").checked)LS.setItem("brm_tk",HOSTTOKEN)};
  $("#htks").onchange=e=>{if(e.target.checked&&HOSTTOKEN)LS.setItem("brm_tk",HOSTTOKEN);else{LS.removeItem("brm_tk");e.target.checked=false}};
- $("#hprev").onclick=()=>{if(!(D.text||"").trim())return alert("本文を入力してください");showAnn({title:D.title||"",text:D.text,bubble:D.bubble},true)};
- $("#hsend").onclick=async()=>{if(!(D.text||"").trim())return alert("本文を入力してください");
-  S.hostRepo=$("#hrepo").value.trim();HOSTTOKEN=$("#htk").value.trim();
-  if(!confirm(`全員への告知を公開します。\n公開先: ${S.hostRepo||defaultRepo()}`))return;
+ const sync=()=>{S.hostRepo=$("#hrepo").value.trim();HOSTTOKEN=$("#htk").value.trim()};
+ document.querySelectorAll("[data-hed]").forEach(b=>b.onclick=()=>{const a=S.anns[+b.dataset.hed];if(!a)return;D.editId=a.id;D.title=a.title;D.text=a.text;D.bubble={...a.bubble};save();renderSettings();setTimeout(()=>{const t=$("#htitle");if(t)t.scrollIntoView({block:"center"})},50)});
+ document.querySelectorAll("[data-hdel]").forEach(b=>b.onclick=async()=>{const a=S.anns[+b.dataset.hdel];if(!a)return;sync();
+  if(!confirm(`「${a.title||a.text.slice(0,20)}」を削除して公開します。`))return;msg("削除しています…",true);
+  try{const next=await ghUpdate(l=>l.filter(x=>x.id!==a.id),"告知を削除");if(D.editId===a.id)D.editId=null;S.anns=next;save();HMSG=`<span style="color:#080">削除しました。反映後、全員の欄から消えます。</span>`;renderSettings()}catch(e){msg("削除できませんでした: "+e.message,false)}});
+ if($("#hnew"))$("#hnew").onclick=()=>{D.editId=null;D.title="";D.text="";save();renderSettings()};
+ $("#hrefresh").onclick=async()=>{msg("取得しています…",true);sync();
+  try{let l;if(HOSTTOKEN){l=(await ghGet()).list}else{const r=await fetch("announce.txt?t="+Date.now(),{cache:"no-store"});l=r.ok?textToAnns(await r.text()):[]}
+   S.anns=l;save();HMSG=`<span style="color:#080">最新の${l.length}件を取得しました。</span>`;renderSettings()}catch(e){msg("取得できませんでした: "+e.message,false)}};
+ $("#hprev").onclick=()=>{if(!need())return;showAnns([mk("preview")],true)};
+ $("#hsend").onclick=async()=>{if(!need())return;sync();
+  if(!confirm(`${D.editId?"告知を上書きして":"新しい告知を追加して"}公開します。\n公開先: ${S.hostRepo||defaultRepo()}`))return;
   msg("公開しています…",true);
-  try{await ghPublish(annToText(cur()),"告知を更新");msg("公開しました。GitHub Pagesの反映後(1〜2分)、ユーザーが次にアプリを開いたときに表示されます。",true)}catch(e){msg("公開できませんでした: "+e.message,false)}};
- $("#hwd").onclick=async()=>{S.hostRepo=$("#hrepo").value.trim();HOSTTOKEN=$("#htk").value.trim();
-  if(!confirm("公開中の告知を取り下げます。"))return;msg("取り下げています…",true);
-  try{await ghPublish(annToText({on:0,id:String(Date.now()),title:"",text:"",bubble:{}}),"告知を取り下げ");msg("取り下げました。反映後、全員の告知が消えます。",true)}catch(e){msg("取り下げできませんでした: "+e.message,false)}};
- $("#hcopy").onclick=()=>{if(!(D.text||"").trim())return alert("本文を入力してください");copy(annToText(cur()));msg("告知ファイルの内容をコピーしました。GitHubの announce.txt に貼り付けて保存してください。",true)};
- $("#hload").onclick=()=>{if(!S.ann)return;D.title=S.ann.title;D.text=S.ann.text;D.bubble={...S.ann.bubble};save();renderSettings()};
- $("#hclose").onclick=()=>{HOST=false;renderSettings()}}
+  try{const next=await ghUpdate(addOp(),D.editId?"告知を更新":"告知を追加");done(next,"公開しました。GitHub Pagesの反映後(1〜2分)、ユーザーが次にアプリを開いたときに表示されます。")}catch(e){msg("公開できませんでした: "+e.message,false)}};
+ $("#hwd").onclick=async()=>{sync();if(!confirm("公開中の告知を、すべて取り下げます。"))return;msg("取り下げています…",true);
+  try{const next=await ghUpdate(()=>[],"告知を取り下げ");S.anns=next;save();HMSG=`<span style="color:#080">すべて取り下げました。反映後、全員の欄から消えます。</span>`;renderSettings()}catch(e){msg("取り下げできませんでした: "+e.message,false)}};
+ $("#hcopy").onclick=()=>{if(!need())return;copy(annsToText(addOp()(S.anns.map(a=>({...a})))));msg("告知ファイルの内容(公開中の告知+この告知)をコピーしました。GitHubの announce.txt に貼り付けて保存してください。",true)};
+ $("#hclose").onclick=()=>{HOST=false;HMSG="";renderSettings()}}
 wall();loadBubbleFont(applyBubbleAll);go("memo");setTimeout(checkAnnounce,300);setTimeout(askStripImgs,500);
 </script></body></html>
