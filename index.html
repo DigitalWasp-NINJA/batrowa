@@ -90,27 +90,29 @@ const LS=(()=>{try{localStorage.setItem("_t","1");localStorage.removeItem("_t");
 const APP="ローカルバトロワ空間";
 const SEED_IMGS=[];
 const SH="デフォルト(数秒後に自動で戻る)";
-const EV={memo:{name:"メモ帳ページ",e:{def:SH,login:"ログイン",save:"メモ保存",copy:"メモコピペ",bookmark:"ブックマーク",del:"メモ削除",dup:"メモ複製",fAdd:"フォルダ作成",fDel:"フォルダ削除",warn:"注意(リンク被り/NGワード/1000文字超)",rollback:"履歴ロールバック",export:"Word・表で書き出し"}},
+const EV={memo:{name:"メモ帳ページ",e:{def:SH,login:"ログイン",save:"メモ保存",copy:"メモコピペ",bookmark:"ブックマーク",del:"メモ削除",dup:"メモクローン",fAdd:"フォルダ作成",fDel:"フォルダ削除",warn:"注意(リンク被り/NGワード/1000文字超)",rollback:"履歴ロールバック",export:"Word・表で書き出し"}},
 settings:{name:"オプション",e:{def:SH,login:"ログイン",change:"設定変更",reset:"設定初期化",navSet:"ナビゲーター設定"}},
 roulette:{name:"ダイス",e:{def:SH,login:"ログイン",folder:"フォルダ・タグ指定",start:"ダイス開始",stop:"ダイス停止",copy:"メモコピペ(一括含む)"}}};
 const LIMIT=1000,MAXIMG=10,DMAX=10,NMAX=20;
 const SORTS={upd:"更新が新しい順",updo:"更新が古い順",new:"作成が新しい順",old:"作成が古い順",title:"タイトル順",len:"文字数が多い順",lens:"文字数が少ない順"};
-const PRESET_TAGS=["善","中立","悪","美少女","戦闘能力持ち","非戦闘","頭脳派","異常者","悲しき過去","モンスター","ニンジャ","人外","カラテ型","特殊能力・ギミック・概念型","お変ク","無機物","未完成","シミュロワ"];
-const DEF_FOLDERS=["未分類","TOUGH","その他猿渡哲也作品","型月(TYPE-MOON)系","ブルーアーカイブ系","イナズマイレブン系","ProjectMoon系","トリッカル系","ソシャゲ・ブラゲ系","デュエル・マスターズ系","ジャンプ系","ウマ娘系","東方Project系","ダンガンロンパ系","画像"];
+const PRESET_TAGS=["善","中立","悪","美少女","戦闘能力持ち","非戦闘","頭脳派","異常者","悲しき過去","モンスター","ニンジャ","人外","カラテ型","特殊能力・ギミック・概念型","お変ク","無機物","未完成","シミュロワ","プロンプト"];
+const DEF_FOLDERS=["未分類","TOUGH","その他猿渡哲也作品","型月(TYPE-MOON)系","ブルーアーカイブ系","イナズマイレブン系","ProjectMoon系","トリッカル系","ソシャゲ・ブラゲ系","デュエル・マスターズ系","ジャンプ系","ウマ娘系","東方Project系","ダンガンロンパ系","プロンプト","画像"];
 const USAGE=`■ はじめに
-このアプリは、キャラシートなどのメモを保存して、ワンタッチでコピーするためのメモ帳です。画面の左がメモ、右が立ち絵とセリフ(ナビゲーター)です。データは、お使いの端末のブラウザの中に保存されます。
+このアプリは、キャラシートなどのメモを保存して、ワンタッチでコピペするためのメモ帳です。画面の左がメモ、右が立ち絵とセリフ(ナビゲーター)です。データは、お使いの端末のブラウザの中に保存されます。
 
 ■ メモ帳
 ・左下の「＋追加」で新しいメモを作ります。入力すると自動で保存されるので、保存ボタンはありません。終わったら「閉じる」を押します。
-・一覧には、タイトルと最初の5行だけが出ます。タップすると全文が開き、ブックマーク・編集・履歴・複製・削除のボタンが出ます。
-・「📋コピー」で、本文をそのままコピーできます。
+・一覧には、タイトルと最初の5行だけが出ます。タップすると全文が開き、ブックマーク・編集・履歴・クローン・削除のボタンが出ます。
+・「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。
 ・「関連メモ」を最大4つ選ぶと、メモの末尾にタイトルが並び、タップで移動できます。
-・「📑複製」で、メモをそっくり複製します。複製元は、自動で関連メモに入ります。
+・「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。
 ・「🕘履歴」で、編集前の文章に戻せます。対象は文章・タグ・フォルダです。
 
 ■ フォルダとタグ
 ・左上の「📁フォルダ」で、フォルダの切り替え・作成・削除ができます。
 ・タグはフォルダとは別の分類です。編集画面でタップして付けます。自分で追加もできます。
+・フォルダ・タグは削除もできます。フォルダは設定の「フォルダ管理」かフォルダ一覧の✕、タグは設定の「タグ管理」から削除します。
+・絞り込み(フォルダ・タグ・検索・並び替え)は、アプリを閉じても保持されます。
 ・一覧の上の「🏷 タグ絞り込み」では、タグをタップするたびに「含める(緑)→除外(赤)→解除」と切り替わります。
 
 ■ 検索と並び替え
@@ -118,12 +120,12 @@ const USAGE=`■ はじめに
 ・並び替えは、更新順・作成順・タイトル順・文字数順から選べます。
 
 ■ 注意メッセージ
-保存の際に、NGワード・リンクの重複・本文1000文字超を見つけると、赤い注意を出します。保存は止まりません。
+保存の際に、NGワード・リンクの重複・本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると、赤い注意を出します。保存は止まりません。
 
 ■ ダイス(右上の🎲)
 ・左上の「📁」でフォルダを最大10個、タグを最大10個まで選びます。何も選ばなければ、全メモが対象です。
 ・個数(1〜20)を決めて「開始」→「停止」を押すと、メモがランダムに出ます。
-・「全部まとめてコピー」で、出たメモを一度にコピーできます。
+・「全部まとめてコピペ」で、出たメモを一度にコピーできます。
 
 ■ 設定(右上の⚙️)
 ・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。
@@ -152,7 +154,9 @@ function normalize(){
  S.memos=S.memos||[];S.memos.forEach(m=>{m.tags=m.tags||[];m.hist=m.hist||[];m.rel=m.rel||[];m.imgs=m.imgs||[]});
  S.rem=(S.rem||[]).map(r=>({id:r.id||Math.random().toString(36).slice(2),time:r.time,msg:r.msg,days:r.days||[],on:r.on!==false}));
  if(!S.seeded){seedMemos().forEach(s=>{if(!S.memos.some(m=>m.title===s.title&&m.sys))S.memos.push(s)});S.seeded=1}
- S.trash=S.trash||[];S.bubble=S.bubble||{};S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
+ S.trash=S.trash||[];S.bubble=S.bubble||{};
+ if(!S.migV3){S.migV3=1;const R=[["ワンタッチでコピーするためのメモ帳", "ワンタッチでコピペするためのメモ帳"], ["ブックマーク・編集・履歴・複製・削除のボタンが出ます", "ブックマーク・編集・履歴・クローン・削除のボタンが出ます"], ["「📋コピー」で、本文をそのままコピーできます。", "「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。"], ["「📑複製」で、メモをそっくり複製します。複製元は、自動で関連メモに入ります。", "「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。"], ["「全部まとめてコピー」", "「全部まとめてコピペ」"], ["本文1000文字超を見つけると", "本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると"], ["自分で追加もできます。\n・一覧の上の", "自分で追加もできます。\n・フォルダ・タグは削除もできます。フォルダは設定の「フォルダ管理」かフォルダ一覧の✕、タグは設定の「タグ管理」から削除します。\n・絞り込み(フォルダ・タグ・検索・並び替え)は、アプリを閉じても保持されます。\n・一覧の上の"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}});
+  if(!S.folders.includes("プロンプト"))S.folders.push("プロンプト");if(!S.tagList.includes("プロンプト"))S.tagList.push("プロンプト")}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
  S.nav=S.nav||{}}
@@ -219,6 +223,8 @@ function check(m){if(m.sys)return[];const w=[],t=m.title+"\n"+m.body;
  const my=urls(m.body),others=S.memos.filter(x=>x!==m).flatMap(x=>urls(x.body));
  const dup=my.filter((u,i)=>others.includes(u)||my.indexOf(u)!==i);if(dup.length)w.push("リンクが重複: "+[...new Set(dup)].join(" , "));
  const n=len(m.body);if(n>LIMIT)w.push(`キャラシートが${LIMIT}文字をオーバーしています(現在${n}文字)`);
+ const arc=(m.title+"\n"+m.body).match(/[A-Za-z0-9\-._~:\/?#@!$&'()*+,;=%]*img\/arc[A-Za-z0-9\-._~:\/?#@!$&'()*+,;=%]*/ig);
+ if(arc&&arc.length)w.push("画像リンクのarc抜き忘れの可能性(img/arcを検出): "+[...new Set(arc)].slice(0,3).join(" , "));
  return w}
 // 画像を縮小して保存容量を節約
 function packImg(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,800/Math.max(i.width,i.height));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(i.width*k));c.height=Math.max(1,Math.round(i.height*k));
@@ -243,17 +249,23 @@ $("#fbtn").onclick=()=>{const p=$("#fpanel");if(p.style.display==="block"){p.sty
   draw();p.style.display="block";return}
  const sel=fl;
  let h=`<div data-f="all" class="${sel==="all"?"cur":""}">すべてのメモ</div>`;
- h+=S.folders.map(f=>`<div data-f="${esc(f)}" class="${f===sel?"cur":""}">📁 ${esc(f)}</div>`).join("");
+ h+=S.folders.map(f=>`<div data-f="${esc(f)}" class="${f===sel?"cur":""}">📁 ${esc(f)}${f==="未分類"?"":`<a data-fx="${esc(f)}" style="float:right;color:#c33;font-weight:bold;padding:0 8px">✕</a>`}</div>`).join("");
  h+=`<div class="act" id="fadd">＋ フォルダ作成</div>`;if(fl!=="all"&&fl!=="未分類")h+=`<div class="dng" id="fdel">🗑 「${esc(fl)}」を削除</div>`;
  p.innerHTML=h;p.style.display="block";
  p.querySelectorAll("[data-f]").forEach(d=>d.onclick=()=>{fl=d.dataset.f;p.style.display="none";renderMemo()});
+ p.querySelectorAll("[data-fx]").forEach(a=>a.onclick=e=>{e.stopPropagation();p.style.display="none";deleteFolder(a.dataset.fx)});
  if($("#fadd"))$("#fadd").onclick=()=>{const n=(prompt("フォルダ名")||"").trim();p.style.display="none";if(!n||S.folders.includes(n))return;S.folders.push(n);fl=n;save();renderMemo();say("memo","fAdd")};
  if($("#fdel"))$("#fdel").onclick=()=>{p.style.display="none";if(!confirm(`フォルダ「${fl}」を削除します。中のメモは「未分類」に移動します。`))return;
   S.memos.forEach(m=>{if(m.folder===fl)m.folder="未分類"});S.folders=S.folders.filter(f=>f!==fl);S.dice.f=S.dice.f.filter(f=>f!==fl);fl="all";save();renderMemo();say("memo","fDel")}};
+function deleteFolder(f){if(!f||f==="未分類")return;const n=S.memos.filter(m=>m.folder===f).length;
+ if(!confirm(`フォルダ「${f}」を削除します。${n?`中のメモ${n}件は「未分類」に移動します。`:""}`))return;
+ S.memos.forEach(m=>{if(m.folder===f)m.folder="未分類"});S.folders=S.folders.filter(x=>x!==f);if(!S.folders.includes("未分類"))S.folders.unshift("未分類");
+ S.dice.f=S.dice.f.filter(x=>x!==f);if(fl===f)fl="all";save();
+ if(tab==="memo")renderMemo();else if(tab==="settings"){renderSettings()}else renderFolderBtn();say(tab==="settings"?"settings":"memo",tab==="settings"?"change":"fDel")}
 function sorter(){const s=S.sort,f={upd:(a,b)=>b.ts-a.ts,updo:(a,b)=>a.ts-b.ts,new:(a,b)=>b.id-a.id,old:(a,b)=>a.id-b.id,
  title:(a,b)=>(a.title||"").localeCompare(b.title||"","ja"),len:(a,b)=>len(b.body)-len(a.body),lens:(a,b)=>len(a.body)-len(b.body)}[s]||((a,b)=>b.ts-a.ts);
  return S.bmFirst?(a,b)=>((+!!b.bm)-(+!!a.bm))||f(a,b):f}
-function renderMemo(){renderFolderBtn();$("#ttl").textContent="";
+function renderMemo(){saveView();renderFolderBtn();$("#ttl").textContent="";
  const nf=TI.size+TE.size;
  $("#memo").innerHTML=`<input id="qs" placeholder="🔍 検索(タイトル・本文・タグ)" style="background:#fff" value="${esc(Q)}">
  <div class="row"><select id="so">${Object.entries(SORTS).map(([k,v])=>`<option value="${k}" ${S.sort===k?"selected":""}>${v}</option>`).join("")}</select>
@@ -269,8 +281,8 @@ function renderMemo(){renderFolderBtn();$("#ttl").textContent="";
    return `<div class="mc" id="m${m.id}"><div class="mh" data-t="${m.id}"><span class="hint">${o?"▲":"▼"}</span><h3>${m.bm?"★ ":""}${esc(m.title||"(無題)")}</h3><pre class="${o?"":"clamp"}">${esc(m.body)}</pre></div>
    ${m.imgs.length?(o?m.imgs.map((s,i)=>`<img class="mi" data-z="${m.id}|${i}" src="${s}">`).join(""):`<div class="th" data-t="${m.id}">${m.imgs.slice(0,4).map(s=>`<img src="${s}">`).join("")}${m.imgs.length>4?`<small>+${m.imgs.length-4}</small>`:""}</div>`):""}
    ${m.tags.map(t=>`<span class="chip" data-tag="${esc(t)}">#${esc(t)}</span>`).join("")}<br>
-   <small>📁 ${esc(m.folder)}・${n}字${n>LIMIT&&!m.sys?' <b style="color:#c33">⚠1000字超</b>':""}</small> <button class="b" data-a="cp" data-i="${m.id}">📋 コピー</button>
-   ${o?`<button class="b y" data-a="bm" data-i="${m.id}">${m.bm?"★解除":"☆ ブックマーク"}</button><button class="b g" data-a="ed" data-i="${m.id}">編集</button><button class="b g" data-a="dp" data-i="${m.id}">📑 複製</button><button class="b g" data-a="hs" data-i="${m.id}">🕘 履歴(${m.hist.length})</button><button class="b" data-a="wd" data-i="${m.id}">📄 Word</button><button class="b" data-a="xl" data-i="${m.id}">📊 表</button><button class="b r" data-a="dl" data-i="${m.id}">削除</button>
+   <small>📁 ${esc(m.folder)}・${n}字${n>LIMIT&&!m.sys?' <b style="color:#c33">⚠1000字超</b>':""}</small> <button class="b" data-a="cp" data-i="${m.id}">📋 コピペ</button>
+   ${o?`<button class="b y" data-a="bm" data-i="${m.id}">${m.bm?"★解除":"☆ ブックマーク"}</button><button class="b g" data-a="ed" data-i="${m.id}">編集</button><button class="b g" data-a="dp" data-i="${m.id}">📑 クローン</button><button class="b g" data-a="hs" data-i="${m.id}">🕘 履歴(${m.hist.length})</button><button class="b" data-a="wd" data-i="${m.id}">📄 Word</button><button class="b" data-a="xl" data-i="${m.id}">📊 表</button><button class="b r" data-a="dl" data-i="${m.id}">削除</button>
    ${rel.length?`<div class="rel"><b>関連メモ</b><div class="rg">${rel.map(r=>`<div data-j="${r.id}">${esc(r.title||"(無題)")}</div>`).join("")}</div></div>`:""}`:""}</div>`}).join("")||`<div class="card"><small>該当するメモがありません。左下の「＋追加」から作成できます。</small></div>`;
   document.querySelectorAll("#ml [data-t]").forEach(d=>d.onclick=()=>{const i=+d.dataset.t;OPEN.has(i)?OPEN.delete(i):OPEN.add(i);draw()});
   document.querySelectorAll("#ml [data-z]").forEach(d=>d.onclick=()=>{zoom(d.src)});
@@ -285,7 +297,7 @@ function renderMemo(){renderFolderBtn();$("#ttl").textContent="";
    if(a==="wd")exportDocx([m],m.title||"メモ");
    if(a==="xl")exportXlsx([m],m.title||"メモ");
    if(a==="dl"&&confirm("削除しますか?(7日間は、設定のごみ箱から復元できます)")){S.trash.push({m:m,del:Date.now(),relBy:S.memos.filter(x=>x!==m&&x.rel.includes(m.id)).map(x=>x.id)});S.memos=S.memos.filter(x=>x!==m);S.memos.forEach(x=>{x.rel=x.rel.filter(r=>r!==m.id)});save();renderMemo();say("memo","del")}})};
- $("#qs").oninput=ev=>{Q=ev.target.value;draw()};
+ $("#qs").oninput=ev=>{Q=ev.target.value;saveView();draw()};
  $("#so").onchange=e=>{S.sort=e.target.value;save();renderMemo()};
  $("#tgb").onclick=()=>{TOPEN=!TOPEN;renderMemo()};
  $("#tmode").onchange=e=>{TMODE=e.target.value;renderMemo()};
@@ -294,7 +306,7 @@ function renderMemo(){renderFolderBtn();$("#ttl").textContent="";
  draw()}
 // 複製: 関連メモもコピーし、複製元を関連メモに追加(最大4つなので、元を先頭にして超過分は末尾から外す)
 function dupMemo(m){const id=Date.now()+Math.floor(Math.random()*5),rel=[m.id,...m.rel.filter(x=>x!==m.id)].slice(0,4);
- const c={id,title:(m.title||"(無題)")+" (複製)",body:m.body,folder:m.folder,tags:[...m.tags],imgs:[...m.imgs],rel,bm:false,ts:Date.now(),hist:[]};
+ const c={id,title:(m.title||"(無題)")+" (クローン)",body:m.body,folder:m.folder,tags:[...m.tags],imgs:[...m.imgs],rel,bm:false,ts:Date.now(),hist:[]};
  S.memos.push(c);OPEN.add(c.id);save();renderMemo();say("memo","dup");const el=$("#m"+c.id);if(el)el.scrollIntoView({block:"center"})}
 const snap=m=>({ts:m.ts,title:m.title,body:m.body,folder:m.folder,tags:[...m.tags],rel:[...m.rel]});
 const sameSnap=(a,b)=>a&&b&&a.title===b.title&&a.body===b.body&&a.folder===b.folder&&same(a.tags,b.tags)&&same(a.rel,b.rel);
@@ -355,7 +367,7 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const dpool=()=>{const d=S.dice,I=new Set(d.ti),E=new Set(d.te);return S.memos.filter(m=>(!d.f.length||d.f.includes(m.folder))&&tagOK(m,I,E,d.mode))};
 function dinfo(){const e=$("#dinfo");if(e)e.textContent=`対象: ${dpool().length}件`}
 function drawRes(ids){const L=ids.map(id=>S.memos.find(m=>m.id===id)).filter(Boolean);
- $("#dres").innerHTML=L.length?`<button class="b" id="dall">📋 全部まとめてコピー(${L.length}件)</button>`+L.map(m=>`<div class="mc"><h3>${esc(m.title||"(無題)")}</h3><pre class="clamp">${esc(m.body)}</pre>${m.imgs.length?`<div class="th">${m.imgs.slice(0,4).map(s=>`<img src="${s}">`).join("")}</div>`:""}<small>📁 ${esc(m.folder)}</small> <button class="b" data-dc="${m.id}">📋 コピー</button></div>`).join(""):"";
+ $("#dres").innerHTML=L.length?`<button class="b" id="dall">📋 全部まとめてコピペ(${L.length}件)</button>`+L.map(m=>`<div class="mc"><h3>${esc(m.title||"(無題)")}</h3><pre class="clamp">${esc(m.body)}</pre>${m.imgs.length?`<div class="th">${m.imgs.slice(0,4).map(s=>`<img src="${s}">`).join("")}</div>`:""}<small>📁 ${esc(m.folder)}</small> <button class="b" data-dc="${m.id}">📋 コピペ</button></div>`).join(""):"";
  if(L.length){$("#dall").onclick=()=>{copy(L.map(m=>(S.dice.title?`■${m.title||"(無題)"}\n`:"")+m.body).join("\n\n"));say("roulette","copy")};
   document.querySelectorAll("[data-dc]").forEach(b=>b.onclick=()=>{copy(S.memos.find(m=>m.id==b.dataset.dc).body);say("roulette","copy")})}}
 function renderDice(){renderFolderBtn();$("#ttl").textContent="";const d=S.dice,nf=d.ti.length+d.te.length;
@@ -364,7 +376,7 @@ function renderDice(){renderFolderBtn();$("#ttl").textContent="";const d=S.dice,
  <div class="${DTOPEN?"":"hide"}" id="dtp"><select id="dmode" style="background:#fff"><option value="or" ${d.mode==="or"?"selected":""}>どれか含む(OR)</option><option value="and" ${d.mode==="and"?"selected":""}>すべて含む(AND)</option></select>
  <small>タップ: 含める(緑・最大${DMAX})→除外(赤)→解除</small><div class="tgc" id="dchips"></div></div>
  <div class="cnt"><button id="dm">−</button><input type="number" id="dn" min="1" max="${NMAX}" value="${d.n}"><button id="dpl">＋</button></div><small>個数(1〜${NMAX})</small><br>
- <label><input type="checkbox" id="duq" ${d.uniq?"checked":""}> 重複なし</label> <label><input type="checkbox" id="dti" ${d.title?"checked":""}> まとめコピーにタイトルを含める</label></div>
+ <label><input type="checkbox" id="duq" ${d.uniq?"checked":""}> 重複なし</label> <label><input type="checkbox" id="dti" ${d.title?"checked":""}> まとめコピペにタイトルを含める</label></div>
  <div class="dice" id="dc">🎲</div>
  <div style="text-align:center"><button class="b" id="rs">▶ 開始</button><button class="b r" id="rp">■ 停止</button></div><div id="dres"></div>`;
  dinfo();
@@ -480,6 +492,10 @@ function renderSettings(){$("#ttl").textContent="設定";
  <div class="card"><b>🗑 ごみ箱</b><small><br>削除したメモを7日間保管します。7日を過ぎると自動で完全に消えます。(${S.trash.length}件)</small>
  ${S.trash.map((t,i)=>`<div class="memo"><b>${esc(t.m.title||"(無題)")}</b><br><small>削除: ${fmt(t.del)}・あと${Math.max(1,Math.ceil((t.del+7*864e5-Date.now())/864e5))}日・${len(t.m.body)}字・📁${esc(t.m.folder)}</small><br><button class="b" data-trr="${i}">♻ 復元</button><button class="b r" data-trd="${i}">完全に削除</button></div>`).join("")||"<br><small>ごみ箱は空です</small>"}
  ${S.trash.length?'<button class="b r" id="tre">ごみ箱を空にする</button>':""}</div>
+ <div class="card"><b>フォルダ管理</b><small><br>フォルダを追加・削除できます。✕で削除すると、中のメモは「未分類」に移動します(「未分類」は削除できません)。</small><div>
+ ${S.folders.map((f,i)=>`<span class="chip">📁 ${esc(f)} (${S.memos.filter(m=>m.folder===f).length}) ${f==="未分類"?"":`<a data-fd="${i}" style="color:#c33;font-weight:bold;cursor:pointer">✕</a>`}</span>`).join("")}</div>
+ <div class="row"><input id="nfol" placeholder="新しいフォルダ名"><button class="b" id="nfadd" style="white-space:nowrap">追加</button></div>
+ <button class="b g" id="nfrs">初期フォルダを復元</button></div>
  <div class="card"><b>タグ管理</b><small><br>初期タグ18種を用意しています。自由に追加・削除できます。✕で削除すると、全メモからそのタグも外れます。</small><div>
  ${S.tagList.map((t,i)=>`<span class="chip">${esc(t)} <a data-td="${i}" style="color:#c33;font-weight:bold;cursor:pointer">✕</a></span>`).join("")}</div>
  <div class="row"><input id="ntag" placeholder="新しいタグ(カンマ区切り可)"><button class="b" id="ntadd" style="white-space:nowrap">追加</button></div>
@@ -531,6 +547,9 @@ function renderSettings(){$("#ttl").textContent="設定";
  $("#bcol").oninput=e=>{S.bubble.color=e.target.value;applyBubbleAll()};$("#bcol").onchange=()=>{save();say("settings","change")};
  $("#bcx").onclick=()=>{delete S.bubble.color;save();applyBubbleAll();renderSettings();say("settings","change")};
  $("#tim").onclick=()=>{const f=$("#tfile").files[0],t=$("#ttext").value.trim();if(!f&&!t)return alert("ファイルを選ぶか、コピーしたデータを貼り付けてください");if(!$("#tpw2").value)return alert("パスワードを入力してください");doImport(f||t,$("#tpw2").value,document.querySelector("input[name=tm]:checked").value)};
+ $("#nfadd").onclick=()=>{const n=$("#nfol").value.trim();if(!n)return;if(S.folders.includes(n))return alert("同じ名前のフォルダがあります");S.folders.push(n);save();renderSettings();say("settings","change")};
+ document.querySelectorAll("[data-fd]").forEach(a=>a.onclick=()=>deleteFolder(S.folders[+a.dataset.fd]));
+ $("#nfrs").onclick=()=>{DEF_FOLDERS.forEach(f=>{if(!S.folders.includes(f))S.folders.push(f)});save();renderSettings();say("settings","change")};
  $("#ntadd").onclick=()=>{if(addTagNames($("#ntag").value).length){renderSettings();say("settings","change")}};
  document.querySelectorAll("[data-td]").forEach(a=>a.onclick=()=>{const t=S.tagList[+a.dataset.td];const u=S.memos.filter(m=>m.tags.includes(t)).length;
   if(!confirm(`タグ「${t}」を削除します。${u?`使用中の${u}件のメモからも外れます。`:""}`))return;
@@ -727,5 +746,11 @@ function bindHost(){const D=S.hostDraft;D.bubble=D.bubble||{};
   try{const next=await ghUpdate(()=>[],"告知を取り下げ");S.anns=next;save();HMSG=`<span style="color:#080">すべて取り下げました。反映後、全員の欄から消えます。</span>`;renderSettings()}catch(e){msg("取り下げできませんでした: "+e.message,false)}};
  $("#hcopy").onclick=()=>{if(!need())return;copy(annsToText(addOp()(S.anns.map(a=>({...a})))));msg("告知ファイルの内容(公開中の告知+この告知)をコピーしました。GitHubの announce.txt に貼り付けて保存してください。",true)};
  $("#hclose").onclick=()=>{HOST=false;HMSG="";renderSettings()}}
+// ---- 絞り込み設定の保持(フォルダ・タグ・検索語)。アプリを閉じても、次に開いたとき元の状態に戻ります
+function saveView(){try{LS.setItem("brm_view",JSON.stringify({fl,TI:[...TI],TE:[...TE],TMODE,Q}))}catch(e){}}
+(function(){try{const v=JSON.parse(LS.getItem("brm_view")||"null");if(!v)return;
+ if(v.fl&&(v.fl==="all"||S.folders.includes(v.fl)))fl=v.fl;
+ const ok=t=>allTags().includes(t);TI=new Set((v.TI||[]).filter(ok));TE=new Set((v.TE||[]).filter(ok));
+ if(typeof v.TMODE==="string")TMODE=v.TMODE;if(typeof v.Q==="string")Q=v.Q}catch(e){}})();
 wall();loadBubbleFont(applyBubbleAll);go("memo");setTimeout(checkAnnounce,300);setTimeout(askStripImgs,500);
 </script></body></html>
