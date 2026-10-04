@@ -154,7 +154,7 @@ function normalize(){
  S.memos=S.memos||[];S.memos.forEach(m=>{m.tags=m.tags||[];m.hist=m.hist||[];m.rel=m.rel||[];m.imgs=m.imgs||[]});
  S.rem=(S.rem||[]).map(r=>({id:r.id||Math.random().toString(36).slice(2),time:r.time,msg:r.msg,days:r.days||[],on:r.on!==false}));
  if(!S.seeded){seedMemos().forEach(s=>{if(!S.memos.some(m=>m.title===s.title&&m.sys))S.memos.push(s)});S.seeded=1}
- S.trash=S.trash||[];S.bubble=S.bubble||{};
+ S.trash=S.trash||[];S.bubble=S.bubble||{};S.nimgs=(S.nimgs&&typeof S.nimgs==="object")?S.nimgs:{};
  if(!S.migV3){S.migV3=1;const R=[["ワンタッチでコピーするためのメモ帳", "ワンタッチでコピペするためのメモ帳"], ["ブックマーク・編集・履歴・複製・削除のボタンが出ます", "ブックマーク・編集・履歴・クローン・削除のボタンが出ます"], ["「📋コピー」で、本文をそのままコピーできます。", "「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。"], ["「📑複製」で、メモをそっくり複製します。複製元は、自動で関連メモに入ります。", "「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。"], ["「全部まとめてコピー」", "「全部まとめてコピペ」"], ["本文1000文字超を見つけると", "本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると"], ["自分で追加もできます。\n・一覧の上の", "自分で追加もできます。\n・フォルダ・タグは削除もできます。フォルダは設定の「フォルダ管理」かフォルダ一覧の✕、タグは設定の「タグ管理」から削除します。\n・絞り込み(フォルダ・タグ・検索・並び替え)は、アプリを閉じても保持されます。\n・一覧の上の"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}});
   if(!S.folders.includes("プロンプト"))S.folders.push("プロンプト");if(!S.tagList.includes("プロンプト"))S.tagList.push("プロンプト")}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
@@ -198,13 +198,13 @@ function say(sec,ev){clearTimeout(NT);
  let n=N[ev]||{},pe=ev;
  if(!n.img&&!n.line&&ev!=="def"&&hasDef){n=d;pe="def"}
  const im=$("#nimg"),b=$("#nbub");applyPos(sec,pe);
- if(n.img){trim(n.img,u=>{im.src=u;im.classList.remove("hide")})}else im.classList.add("hide");
+ if(n.img){trim(imgOf(n.img),u=>{im.src=u;im.classList.remove("hide")})}else im.classList.add("hide");
  if(n.line){b.textContent=n.line;b.classList.remove("hide")}else b.classList.add("hide");
  if(pe!=="def"&&hasDef)NT=setTimeout(()=>{if(!document.body.classList.contains("pv"))say(sec,"def")},Math.max(1,S.delay)*1000)}
 function openPV(sec,ev){const n=(S.nav[sec]||{})[ev]||{};clearTimeout(NT);
  if(!n.img)return alert("この場面には立ち絵画像が設定されていません。先に画像を設定してください。");
  document.body.classList.add("pv");applyPos(sec,ev);
- trim(n.img,u=>{$("#nimg").src=u;$("#nimg").classList.remove("hide")});
+ trim(imgOf(n.img),u=>{$("#nimg").src=u;$("#nimg").classList.remove("hide")});
  $("#nbub").textContent=n.line||"セリフの表示位置(サンプル)";$("#nbub").classList.remove("hide");
  const p=pos(sec,ev),bar=$("#pvbar"),key=sec+"."+ev;
  const rows=[["h","大きさ",60,240],["y","上下(＋で下へ)",-60,80],["x","左右(＋で右へ)",-60,60]];
@@ -223,8 +223,9 @@ function check(m){if(m.sys)return[];const w=[],t=m.title+"\n"+m.body;
  const my=urls(m.body),others=S.memos.filter(x=>x!==m).flatMap(x=>urls(x.body));
  const dup=my.filter((u,i)=>others.includes(u)||my.indexOf(u)!==i);if(dup.length)w.push("リンクが重複: "+[...new Set(dup)].join(" , "));
  const n=len(m.body);if(n>LIMIT)w.push(`キャラシートが${LIMIT}文字をオーバーしています(現在${n}文字)`);
- const arc=(m.title+"\n"+m.body).match(/[A-Za-z0-9\-._~:\/?#@!$&'()*+,;=%]*img\/arc[A-Za-z0-9\-._~:\/?#@!$&'()*+,;=%]*/ig);
- if(arc&&arc.length)w.push("画像リンクのarc抜き忘れの可能性(img/arcを検出): "+[...new Set(arc)].slice(0,3).join(" , "));
+ const _t=m.title+"\n"+m.body,_u=_t.match(/https?:\/\/[A-Za-z0-9\-._~:\/?#@!$&'()*+,;=%]+/g)||[];
+ const arc=[..._u.filter(u=>/img\/arc/i.test(u)||(/^https?:\/\/img[A-Za-z0-9\-]*\./i.test(u)&&/\/arc(\/|\?|#|$)/i.test(u))),...(_t.match(/[^\s]*img\/arc[^\s]*/ig)||[])];
+ if(arc.length)w.push("画像リンクのarc抜き忘れの可能性(img/arcを検出): "+[...new Set(arc)].slice(0,3).join(" , "));
  return w}
 // 画像を縮小して保存容量を節約
 function packImg(file){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,800/Math.max(i.width,i.height));const c=document.createElement("canvas");c.width=Math.max(1,Math.round(i.width*k));c.height=Math.max(1,Math.round(i.height*k));
@@ -459,7 +460,8 @@ function mergeIn(I){I.memos=I.memos||[];
  (I.folders||[]).forEach(f=>{if(!S.folders.includes(f))S.folders.push(f)});(I.tagList||[]).forEach(t=>{if(!S.tagList.includes(t))S.tagList.push(t)});(I.ng||[]).forEach(t=>{if(!S.ng.includes(t))S.ng.push(t)});
  (I.rem||[]).forEach(r=>{if(!S.rem.some(x=>x.id===r.id))S.rem.push(r)});
  for(const sec in (I.nav||{})){S.nav[sec]=S.nav[sec]||{};for(const ev in I.nav[sec]){if(!S.nav[sec][ev])S.nav[sec][ev]=I.nav[sec][ev]}}
- for(const k in (I.pos||{})){if(!S.pos[k])S.pos[k]=I.pos[k]}}
+ for(const k in (I.pos||{})){if(!S.pos[k])S.pos[k]=I.pos[k]}
+ for(const k in (I.nimgs||{})){if(!(k in S.nimgs))S.nimgs[k]=I.nimgs[k]}}
 function openTransfer(){const M=$("#modal");let pw=genPw();
  M.innerHTML=`<div class="card"><b>📲 引き継ぎデータを書き出す</b><small><br>データをパスワードで暗号化したファイルにします。別の端末で「読み込む」とパスワードを入力すると、同じメモが使えます。</small>
  <div class="ok">パスワード(控えてください)</div><input class="pw" id="tpw" value="${pw}"><button class="b g" id="tgen">🔁 再発行</button> <button class="b g" id="tcp">📋 パスワードをコピー</button><br><small>自分で決めたパスワードを入力しても構いません。</small><br>
@@ -505,10 +507,11 @@ function renderSettings(){$("#ttl").textContent="設定";
  <button class="b" id="exd">📄 Wordで保存</button><button class="b" id="exx">📊 スプレッドシートで保存</button></div>
  <div class="card"><b>ナビゲーター設定</b><small><br>項目・場面ごとに、立ち絵画像(透過PNG推奨)とセリフを設定します。「デフォルト」は、アクションの立ち絵を表示した数秒後に自動で切り替わる、普段の立ち絵とセリフです。各場面の「📐 位置調整」で大きさと位置も変えられます。</small><br>
  <label>デフォルトに戻るまでの秒数<input type="number" id="dly" min="1" max="60" value="${S.delay}"></label></div>`;
+ h+=bulkCardHTML();
  for(const sec in EV){h+=`<div class="card"><b>${EV[sec].name}</b>`;
   for(const ev in EV[sec].e){const n=(S.nav[sec]||{})[ev]||{};
-   h+=`<div class="memo"><small>${EV[sec].e[ev]}</small> <button class="b y" data-pv="${sec}|${ev}">📐 位置調整</button><input data-s="${sec}" data-e="${ev}" class="ln" placeholder="セリフ" value="${esc(n.line||"")}">
-   <input type="file" accept="image/*" data-s="${sec}" data-e="${ev}" class="im">${n.img?`<img src="${n.img}" height="50"> <button class="b g" data-s="${sec}" data-e="${ev}" data-x="1">画像削除</button>`:""}</div>`}
+   h+=`<div class="memo"><small>${EV[sec].e[ev]}</small> <button class="b y" data-pv="${sec}|${ev}">📐 位置調整</button> <button class="b g" data-all="${sec}|${ev}">🌐 これを全場面に</button><input data-s="${sec}" data-e="${ev}" class="ln" placeholder="セリフ" value="${esc(n.line||"")}">
+   <input type="file" accept="image/*" data-s="${sec}" data-e="${ev}" class="im">${n.img?`<img src="${imgOf(n.img)}" height="50"> <button class="b g" data-s="${sec}" data-e="${ev}" data-x="1">画像削除</button>`:""}</div>`}
   h+=`</div>`}
  h+=`<div class="card"><b>💬 吹き出し</b><small><br>セリフの吹き出しの画像(透過PNG推奨)、書体、文字色を変えられます。</small>
  <div class="bubs" id="bsamp">サンプル:セリフはこのように表示されます</div>
@@ -560,6 +563,7 @@ function renderSettings(){$("#ttl").textContent="設定";
  $("#exx").onclick=()=>{const f=$("#exf").value;exportXlsx(scope(),f==="all"?APP:f)};
  $("#dly").onchange=e=>{S.delay=Math.min(60,Math.max(1,+e.target.value||5));save();say("settings","change")};
  document.querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>{const[s,e]=b.dataset.pv.split("|");openPV(s,e)});
+ bindBulk();
  document.querySelectorAll(".ln").forEach(i=>i.onchange=()=>{setn(i.dataset.s,i.dataset.e,"line",i.value);say("settings","navSet")});
  document.querySelectorAll(".im").forEach(i=>i.onchange=()=>resize(i.files[0],1200,d=>{setn(i.dataset.s,i.dataset.e,"img",d);renderSettings();say("settings","navSet")}));
  document.querySelectorAll("[data-x]").forEach(i=>i.onclick=()=>{setn(i.dataset.s,i.dataset.e,"img",null);renderSettings();say("settings","navSet")});
@@ -574,7 +578,7 @@ function renderSettings(){$("#ttl").textContent="設定";
  document.querySelectorAll("[data-ron]").forEach(c=>c.onchange=()=>{S.rem.find(r=>r.id===c.dataset.ron).on=c.checked;save()});
  document.querySelectorAll("[data-rd]").forEach(b=>b.onclick=()=>{S.rem=S.rem.filter(r=>r.id!==b.dataset.rd);save();renderSettings();say("settings","change")});
  $("#rst").onclick=()=>{if(!confirm("ナビ・吹き出し・壁紙・リマインダー・NGワード・立ち絵位置を初期化します"))return;
-  S.nav={};S.pos={};S.bubble={};S.delay=5;S.wall={color:"#222222",img:""};S.rem=[];S.ng=DEF.ng.slice();save();wall();applyBubbleAll();renderSettings();say("settings","reset")}}
+  S.nav={};S.nimgs={};S.pos={};S.bubble={};S.delay=5;S.wall={color:"#222222",img:""};S.rem=[];S.ng=DEF.ng.slice();save();wall();applyBubbleAll();renderSettings();say("settings","reset")}}
 function wall(){document.body.style.backgroundColor=S.wall.color;$("#bg").style.backgroundImage=S.wall.img?`url(${S.wall.img})`:"none"}
 const FONT_LABELS={"":"標準(ゴシック)",mincho:"明朝体",maru:"丸ゴシック風",hand:"手書き・教科書体風",mono:"等幅"};
 const FONTS={"":"",mincho:'"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif',maru:'"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Noto Sans JP",sans-serif',hand:'"Yu Kyokasho","Klee One","UD Digi Kyokasho N-R","Comic Sans MS",cursive',mono:"monospace"};
@@ -752,5 +756,48 @@ function saveView(){try{LS.setItem("brm_view",JSON.stringify({fl,TI:[...TI],TE:[
  if(v.fl&&(v.fl==="all"||S.folders.includes(v.fl)))fl=v.fl;
  const ok=t=>allTags().includes(t);TI=new Set((v.TI||[]).filter(ok));TE=new Set((v.TE||[]).filter(ok));
  if(typeof v.TMODE==="string")TMODE=v.TMODE;if(typeof v.Q==="string")Q=v.Q}catch(e){}})();
+// ================= 立ち絵の一括設定 =================
+// 同じ画像を全場面に入れても容量が増えないよう、画像は1つだけ保存し、各場面は「ref:番号」で参照します
+const allEvents=()=>{const a=[];for(const sec in EV)for(const ev in EV[sec].e)a.push([sec,ev]);return a};
+const imgOf=v=>(typeof v==="string"&&v.startsWith("ref:"))?((S.nimgs||{})[v.slice(4)]||""):(v||"");
+function newImgRef(data){const id="i"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);S.nimgs[id]=data;return"ref:"+id}
+function gcNavImgs(){const used=new Set();for(const sec in S.nav)for(const ev in S.nav[sec]){const v=S.nav[sec][ev]&&S.nav[sec][ev].img;if(typeof v==="string"&&v.startsWith("ref:"))used.add(v.slice(4))}
+ for(const k of Object.keys(S.nimgs))if(!used.has(k))delete S.nimgs[k]}
+function bulkSetImage(ref,resetPos){allEvents().forEach(([s,e])=>{S.nav[s]=S.nav[s]||{};S.nav[s][e]=S.nav[s][e]||{};S.nav[s][e].img=ref;if(resetPos){delete S.pos[s+"."+e];delete S.pos[s]}});gcNavImgs();save()}
+function bulkCardHTML(){return `<div class="card" style="border:2px solid #36c"><b>🌐 立ち絵の一括設定</b><small><br>すべての項目・場面(画像が未設定の場面も含む)の立ち絵を、ワンタッチで同じ画像・同じ位置にそろえます。セリフは変わりません。</small>
+ <small>① 立ち絵画像を選ぶと、全場面に設定します</small><input type="file" id="bulkimg" accept="image/*">
+ <label style="font-size:13px"><input type="checkbox" id="bulkreset" style="width:auto" checked> 位置も初期位置にそろえる</label>
+ <small>② 位置・大きさを、全場面にそろえます</small><br><button class="b y" id="bulkpos">📐 位置を一括調整</button>
+ <small><br>③ 各場面の「🌐 これを全場面に」で、その場面の立ち絵と位置を全場面にコピーできます</small><br>
+ <button class="b g" id="bulkdel">すべての立ち絵画像を削除</button></div>\n `}
+function bindBulk(){
+ $("#bulkimg").onchange=e=>{const f=e.target.files[0];if(!f)return;
+  if(!confirm("すべての場面の立ち絵を、この画像に置き換えます。(セリフは変わりません)")){e.target.value="";return}
+  resize(f,1200,d=>{bulkSetImage(newImgRef(d),$("#bulkreset").checked);renderSettings();say("settings","navSet");alert("すべての場面に設定しました")})};
+ $("#bulkpos").onclick=()=>openPVAll();
+ $("#bulkdel").onclick=()=>{if(!confirm("すべての場面の立ち絵画像を削除します。(セリフ・位置の設定は残ります)"))return;allEvents().forEach(([s,e])=>{if(S.nav[s]&&S.nav[s][e])delete S.nav[s][e].img});gcNavImgs();save();renderSettings();say("settings","navSet")};
+ document.querySelectorAll("[data-all]").forEach(b=>b.onclick=()=>{const[s,e]=b.dataset.all.split("|");const n=(S.nav[s]||{})[e]||{};
+  if(!n.img)return alert("この場面には立ち絵画像が設定されていません。");
+  if(!confirm(`「${EV[s].name}／${EV[s].e[e]}」の立ち絵と位置を、すべての場面に設定します。(セリフは変わりません)`))return;
+  let ref=n.img;if(!String(ref).startsWith("ref:")){ref=newImgRef(ref);n.img=ref}
+  const p=pos(s,e);allEvents().forEach(([s2,e2])=>{S.nav[s2]=S.nav[s2]||{};S.nav[s2][e2]=S.nav[s2][e2]||{};S.nav[s2][e2].img=ref;S.pos[s2+"."+e2]={...p}});
+  gcNavImgs();save();renderSettings();say("settings","navSet");alert("すべての場面に設定しました")})}
+function openPVAll(){const first=()=>{for(const [s,e] of allEvents()){const v=imgOf(((S.nav[s]||{})[e]||{}).img);if(v)return v}return""};
+ const src=imgOf(((S.nav.memo||{}).def||{}).img)||first();
+ if(!src)return alert("先に立ち絵画像を設定してください。(上の①で一括設定できます)");
+ clearTimeout(NT);document.body.classList.add("pv");
+ let P={...POSDEF,...(S.pos["memo.def"]||{})};
+ const ap=()=>{const i=$("#nimg");i.style.height=P.h+"%";i.style.top=P.y+"%";i.style.right=(-P.x)+"%"};ap();
+ trim(src,u=>{$("#nimg").src=u;$("#nimg").classList.remove("hide")});
+ $("#nbub").textContent="セリフの表示位置(サンプル)";$("#nbub").classList.remove("hide");
+ const bar=$("#pvbar"),rows=[["h","大きさ",60,240],["y","上下(＋で下へ)",-60,80],["x","左右(＋で右へ)",-60,60]];
+ bar.innerHTML=`<b>全場面の位置を一括調整</b>`+rows.map(([k,l,a,b])=>`<label>${l}: <span id="pa_${k}">${P[k]}</span>%<input type="range" data-k="${k}" min="${a}" max="${b}" value="${P[k]}"></label>`).join("")+`<button class="b g" id="par">初期値に戻す</button><button class="b" id="pao">この位置を全場面に適用</button><button class="b g" id="pax">キャンセル</button>`;
+ bar.classList.remove("hide");
+ bar.querySelectorAll("input[type=range]").forEach(r=>{r.oninput=()=>{P[r.dataset.k]=+r.value;$("#pa_"+r.dataset.k).textContent=r.value;ap()}});
+ const close=()=>{document.body.classList.remove("pv");bar.classList.add("hide");say("settings","navSet")};
+ $("#par").onclick=()=>{P={...POSDEF};bar.querySelectorAll("input[type=range]").forEach(r=>{r.value=P[r.dataset.k];$("#pa_"+r.dataset.k).textContent=P[r.dataset.k]});ap()};
+ $("#pao").onclick=()=>{allEvents().forEach(([s,e])=>{S.pos[s+"."+e]={...P}});save();close();alert("すべての場面の位置をそろえました")};
+ $("#pax").onclick=close}
+gcNavImgs();
 wall();loadBubbleFont(applyBubbleAll);go("memo");setTimeout(checkAnnounce,300);setTimeout(askStripImgs,500);
 </script></body></html>
