@@ -125,7 +125,7 @@ const USAGE=`■ はじめに
 ■ ダイス(右上の🎲)
 ・左上の「📁」でフォルダを最大10個、タグを最大10個まで選びます。何も選ばなければ、全メモが対象です。
 ・個数(1〜20)を決めて「開始」→「停止」を押すと、メモがランダムに出ます。
-・「全部まとめてコピペ」で、出たメモを一度にコピーできます。
+・「全部まとめてコピペ」で、出たメモを一度にコピペできます。タイトルは含まず、メモの内容だけをコピペします。
 
 ■ 設定(右上の⚙️)
 ・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。
@@ -156,7 +156,8 @@ function normalize(){
  if(!S.seeded){seedMemos().forEach(s=>{if(!S.memos.some(m=>m.title===s.title&&m.sys))S.memos.push(s)});S.seeded=1}
  S.trash=S.trash||[];S.bubble=S.bubble||{};S.nimgs=(S.nimgs&&typeof S.nimgs==="object")?S.nimgs:{};
  if(!S.migV3){S.migV3=1;const R=[["ワンタッチでコピーするためのメモ帳", "ワンタッチでコピペするためのメモ帳"], ["ブックマーク・編集・履歴・複製・削除のボタンが出ます", "ブックマーク・編集・履歴・クローン・削除のボタンが出ます"], ["「📋コピー」で、本文をそのままコピーできます。", "「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。"], ["「📑複製」で、メモをそっくり複製します。複製元は、自動で関連メモに入ります。", "「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。"], ["「全部まとめてコピー」", "「全部まとめてコピペ」"], ["本文1000文字超を見つけると", "本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると"], ["自分で追加もできます。\n・一覧の上の", "自分で追加もできます。\n・フォルダ・タグは削除もできます。フォルダは設定の「フォルダ管理」かフォルダ一覧の✕、タグは設定の「タグ管理」から削除します。\n・絞り込み(フォルダ・タグ・検索・並び替え)は、アプリを閉じても保持されます。\n・一覧の上の"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}});
-  if(!S.folders.includes("プロンプト"))S.folders.push("プロンプト");if(!S.tagList.includes("プロンプト"))S.tagList.push("プロンプト")}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
+  if(!S.folders.includes("プロンプト"))S.folders.push("プロンプト");if(!S.tagList.includes("プロンプト"))S.tagList.push("プロンプト")}
+ if(!S.migV4){S.migV4=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方")m.body=m.body.split("「全部まとめてコピペ」で、出たメモを一度にコピーできます。").join("「全部まとめてコピペ」で、出たメモを一度にコピペできます。タイトルは含まず、メモの内容だけをコピペします。")})}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
  S.nav=S.nav||{}}
@@ -369,7 +370,7 @@ const dpool=()=>{const d=S.dice,I=new Set(d.ti),E=new Set(d.te);return S.memos.f
 function dinfo(){const e=$("#dinfo");if(e)e.textContent=`対象: ${dpool().length}件`}
 function drawRes(ids){const L=ids.map(id=>S.memos.find(m=>m.id===id)).filter(Boolean);
  $("#dres").innerHTML=L.length?`<button class="b" id="dall">📋 全部まとめてコピペ(${L.length}件)</button>`+L.map(m=>`<div class="mc"><h3>${esc(m.title||"(無題)")}</h3><pre class="clamp">${esc(m.body)}</pre>${m.imgs.length?`<div class="th">${m.imgs.slice(0,4).map(s=>`<img src="${s}">`).join("")}</div>`:""}<small>📁 ${esc(m.folder)}</small> <button class="b" data-dc="${m.id}">📋 コピペ</button></div>`).join(""):"";
- if(L.length){$("#dall").onclick=()=>{copy(L.map(m=>(S.dice.title?`■${m.title||"(無題)"}\n`:"")+m.body).join("\n\n"));say("roulette","copy")};
+ if(L.length){$("#dall").onclick=()=>{copy(L.map(m=>m.body).join("\n\n"));say("roulette","copy")};
   document.querySelectorAll("[data-dc]").forEach(b=>b.onclick=()=>{copy(S.memos.find(m=>m.id==b.dataset.dc).body);say("roulette","copy")})}}
 function renderDice(){renderFolderBtn();$("#ttl").textContent="";const d=S.dice,nf=d.ti.length+d.te.length;
  $("#roulette").innerHTML=`<div class="card"><small id="dinfo"></small>
@@ -377,7 +378,7 @@ function renderDice(){renderFolderBtn();$("#ttl").textContent="";const d=S.dice,
  <div class="${DTOPEN?"":"hide"}" id="dtp"><select id="dmode" style="background:#fff"><option value="or" ${d.mode==="or"?"selected":""}>どれか含む(OR)</option><option value="and" ${d.mode==="and"?"selected":""}>すべて含む(AND)</option></select>
  <small>タップ: 含める(緑・最大${DMAX})→除外(赤)→解除</small><div class="tgc" id="dchips"></div></div>
  <div class="cnt"><button id="dm">−</button><input type="number" id="dn" min="1" max="${NMAX}" value="${d.n}"><button id="dpl">＋</button></div><small>個数(1〜${NMAX})</small><br>
- <label><input type="checkbox" id="duq" ${d.uniq?"checked":""}> 重複なし</label> <label><input type="checkbox" id="dti" ${d.title?"checked":""}> まとめコピペにタイトルを含める</label></div>
+ <label><input type="checkbox" id="duq" ${d.uniq?"checked":""}> 重複なし</label></div>
  <div class="dice" id="dc">🎲</div>
  <div style="text-align:center"><button class="b" id="rs">▶ 開始</button><button class="b r" id="rp">■ 停止</button></div><div id="dres"></div>`;
  dinfo();
@@ -387,7 +388,7 @@ function renderDice(){renderFolderBtn();$("#ttl").textContent="";const d=S.dice,
  $("#dmode").onchange=e=>{d.mode=e.target.value;save();dinfo()};
  const setN=v=>{d.n=Math.min(NMAX,Math.max(1,Math.round(+v||1)));$("#dn").value=d.n;save()};
  $("#dn").onchange=e=>setN(e.target.value);$("#dm").onclick=()=>setN(d.n-1);$("#dpl").onclick=()=>setN(d.n+1);
- $("#duq").onchange=e=>{d.uniq=e.target.checked;save()};$("#dti").onchange=e=>{d.title=e.target.checked;save()};
+ $("#duq").onchange=e=>{d.uniq=e.target.checked;save()};
  $("#rs").onclick=()=>{const p=dpool();if(!p.length)return alert("対象のメモがありません。左上のフォルダやタグの指定を見直してください");
   const n=d.uniq?Math.min(d.n,p.length):d.n;clearInterval(rt);$("#dc").classList.add("spin");
   rt=setInterval(()=>{$("#dres").innerHTML=Array.from({length:n},()=>`<div class="big">${esc(p[Math.floor(Math.random()*p.length)].title||"(無題)")}</div>`).join("")},80);say("roulette","start")};
