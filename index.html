@@ -142,7 +142,7 @@ const TEMPLATE=`名前(原作)：
 備考：
 参考リンク：
 画像：`;
-const DEF={memos:[],folders:DEF_FOLDERS.slice(),ng:["殺害","殺す","信者","クソゲー","駄作"],wall:{color:"#222222",img:""},rem:[],pos:{},delay:5,sort:"upd",bmFirst:true,tagList:PRESET_TAGS.slice(),dice:{f:[],ti:[],te:[],mode:"or",n:1,uniq:true,title:true},seeded:0,trash:[],bubble:{}};
+const DEF={memos:[],folders:DEF_FOLDERS.slice(),ng:["殺害","殺す","信者","クソゲー","駄作","蛆虫","セックス","自殺","強姦","キチガイ","死ね","キモオタ"],wall:{color:"#222222",img:""},rem:[],pos:{},delay:5,sort:"upd",bmFirst:true,tagList:PRESET_TAGS.slice(),dice:{f:[],ti:[],te:[],mode:"or",n:1,uniq:true,title:true},seeded:0,trash:[],bubble:{}};
 function seedMemos(){const now=Date.now();return[
  {id:now,title:"使い方",body:USAGE,folder:"未分類",tags:[],imgs:SEED_IMGS.slice(),rel:[],bm:true,ts:now,hist:[],sys:1},
  {id:now+1,title:"汎用テンプレート",body:TEMPLATE,folder:"未分類",tags:[],imgs:[],rel:[],bm:false,ts:now,hist:[],sys:1}]}
@@ -157,6 +157,7 @@ function normalize(){
  S.trash=S.trash||[];S.bubble=S.bubble||{};S.nimgs=(S.nimgs&&typeof S.nimgs==="object")?S.nimgs:{};
  if(!S.migV3){S.migV3=1;const R=[["ワンタッチでコピーするためのメモ帳", "ワンタッチでコピペするためのメモ帳"], ["ブックマーク・編集・履歴・複製・削除のボタンが出ます", "ブックマーク・編集・履歴・クローン・削除のボタンが出ます"], ["「📋コピー」で、本文をそのままコピーできます。", "「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。"], ["「📑複製」で、メモをそっくり複製します。複製元は、自動で関連メモに入ります。", "「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。"], ["「全部まとめてコピー」", "「全部まとめてコピペ」"], ["本文1000文字超を見つけると", "本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると"], ["自分で追加もできます。\n・一覧の上の", "自分で追加もできます。\n・フォルダ・タグは削除もできます。フォルダは設定の「フォルダ管理」かフォルダ一覧の✕、タグは設定の「タグ管理」から削除します。\n・絞り込み(フォルダ・タグ・検索・並び替え)は、アプリを閉じても保持されます。\n・一覧の上の"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}});
   if(!S.folders.includes("プロンプト"))S.folders.push("プロンプト");if(!S.tagList.includes("プロンプト"))S.tagList.push("プロンプト")}
+ if(!S.migV5){S.migV5=1;const W=["蛆虫", "セックス", "自殺", "強姦", "キチガイ", "死ね", "キモオタ"];W.forEach(w=>{if(!S.ng.includes(w))S.ng.push(w)})}
  if(!S.migV4){S.migV4=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方")m.body=m.body.split("「全部まとめてコピペ」で、出たメモを一度にコピーできます。").join("「全部まとめてコピペ」で、出たメモを一度にコピペできます。タイトルは含まず、メモの内容だけをコピペします。")})}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
