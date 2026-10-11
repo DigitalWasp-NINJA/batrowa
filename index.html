@@ -67,6 +67,8 @@ body.pv #main,body.pv #fab,body.pv #fbtn,body.pv #hbtns{visibility:hidden}
 .annitem{margin-bottom:12px;text-align:left}.annti{font-weight:bold;margin:2px 0 4px}
 #annlist .annti{color:#fff}.annd{color:#666;display:block;margin-top:2px}#annlist .annd{color:#ccc}
 .annt a{color:#0645ad;text-decoration:underline;word-break:break-all}.annh{color:#36c;text-decoration:underline;margin-left:8px;cursor:pointer}
+.fgh{color:#fff;font-weight:bold;font-size:13px;margin:12px 2px 2px;text-shadow:0 0 3px #000}
+.qw{position:relative}.qx{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;background:#aaa;color:#fff;font-weight:bold;cursor:pointer}
 </style></head><body><div id="bg"></div>
 <header><button class="fbtn" id="fbtn">📁 フォルダ ▾</button><div class="ttl" id="ttl"></div><span id="hbtns"></span></header>
 <div id="fpanel"></div>
@@ -94,7 +96,7 @@ const EV={memo:{name:"メモ帳ページ",e:{def:SH,login:"ログイン",save:"�
 settings:{name:"オプション",e:{def:SH,login:"ログイン",change:"設定変更",reset:"設定初期化",navSet:"ナビゲーター設定"}},
 roulette:{name:"ダイス",e:{def:SH,login:"ログイン",folder:"フォルダ・タグ指定",start:"ダイス開始",stop:"ダイス停止",copy:"メモコピペ(一括含む)"}}};
 const LIMIT=1000,MAXIMG=10,DMAX=10,NMAX=20;
-const SORTS={upd:"更新が新しい順",updo:"更新が古い順",new:"作成が新しい順",old:"作成が古い順",title:"タイトル順",len:"文字数が多い順",lens:"文字数が少ない順"};
+const SORTS={upd:"更新が新しい順",updo:"更新が古い順",new:"作成が新しい順",old:"作成が古い順",title:"タイトル順",folder:"フォルダ順",len:"文字数が多い順",lens:"文字数が少ない順"};
 const PRESET_TAGS=["善","中立","悪","美少女","戦闘能力持ち","非戦闘","頭脳派","異常者","悲しき過去","モンスター","ニンジャ","人外","カラテ型","特殊能力・ギミック・概念型","お変ク","無機物","未完成","シミュロワ","プロンプト"];
 const DEF_FOLDERS=["未分類","TOUGH","その他猿渡哲也作品","型月(TYPE-MOON)系","ブルーアーカイブ系","イナズマイレブン系","ProjectMoon系","トリッカル系","ソシャゲ・ブラゲ系","デュエル・マスターズ系","ジャンプ系","ウマ娘系","東方Project系","ダンガンロンパ系","プロンプト","画像"];
 const USAGE=`■ はじめに
@@ -116,8 +118,8 @@ const USAGE=`■ はじめに
 ・一覧の上の「🏷 タグ絞り込み」では、タグをタップするたびに「含める(緑)→除外(赤)→解除」と切り替わります。
 
 ■ 検索と並び替え
-・検索欄は、タイトル・本文・タグが対象です。
-・並び替えは、更新順・作成順・タイトル順・文字数順から選べます。
+・検索欄は、タイトル・本文・タグが対象です。右端の✕で、入力した検索語を一度に消せます。
+・並び替えは、更新順・作成順・タイトル順・フォルダ順・文字数順から選べます。
 
 ■ 注意メッセージ
 保存の際に、NGワード・リンクの重複・本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると、赤い注意を出します。保存は止まりません。
@@ -158,6 +160,7 @@ function normalize(){
  if(!S.migV3){S.migV3=1;const R=[["ワンタッチでコピーするためのメモ帳", "ワンタッチでコピペするためのメモ帳"], ["ブックマーク・編集・履歴・複製・削除のボタンが出ます", "ブックマーク・編集・履歴・クローン・削除のボタンが出ます"], ["「📋コピー」で、本文をそのままコピーできます。", "「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。"], ["「📑複製」で、メモをそっくり複製します。複製元は、自動で関連メモに入ります。", "「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。"], ["「全部まとめてコピー」", "「全部まとめてコピペ」"], ["本文1000文字超を見つけると", "本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると"], ["自分で追加もできます。\n・一覧の上の", "自分で追加もできます。\n・フォルダ・タグは削除もできます。フォルダは設定の「フォルダ管理」かフォルダ一覧の✕、タグは設定の「タグ管理」から削除します。\n・絞り込み(フォルダ・タグ・検索・並び替え)は、アプリを閉じても保持されます。\n・一覧の上の"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}});
   if(!S.folders.includes("プロンプト"))S.folders.push("プロンプト");if(!S.tagList.includes("プロンプト"))S.tagList.push("プロンプト")}
  if(!S.migV5){S.migV5=1;const W=["蛆虫", "セックス", "自殺", "強姦", "キチガイ", "死ね", "キモオタ"];W.forEach(w=>{if(!S.ng.includes(w))S.ng.push(w)})}
+ if(!S.migV6){S.migV6=1;const R=[["・並び替えは、更新順・作成順・タイトル順・文字数順から選べます。", "・並び替えは、更新順・作成順・タイトル順・フォルダ順・文字数順から選べます。"], ["・検索欄は、タイトル・本文・タグが対象です。", "・検索欄は、タイトル・本文・タグが対象です。右端の✕で、入力した検索語を一度に消せます。"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}})}
  if(!S.migV4){S.migV4=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方")m.body=m.body.split("「全部まとめてコピペ」で、出たメモを一度にコピーできます。").join("「全部まとめてコピペ」で、出たメモを一度にコピペできます。タイトルは含まず、メモの内容だけをコピペします。")})}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
@@ -265,12 +268,15 @@ function deleteFolder(f){if(!f||f==="未分類")return;const n=S.memos.filter(m=
  S.memos.forEach(m=>{if(m.folder===f)m.folder="未分類"});S.folders=S.folders.filter(x=>x!==f);if(!S.folders.includes("未分類"))S.folders.unshift("未分類");
  S.dice.f=S.dice.f.filter(x=>x!==f);if(fl===f)fl="all";save();
  if(tab==="memo")renderMemo();else if(tab==="settings"){renderSettings()}else renderFolderBtn();say(tab==="settings"?"settings":"memo",tab==="settings"?"change":"fDel")}
-function sorter(){const s=S.sort,f={upd:(a,b)=>b.ts-a.ts,updo:(a,b)=>a.ts-b.ts,new:(a,b)=>b.id-a.id,old:(a,b)=>a.id-b.id,
+function sorter(){const s=S.sort;
+ if(s==="folder"){const ix=m=>{const i=S.folders.indexOf(m.folder);return i<0?9999:i};
+  return(a,b)=>(ix(a)-ix(b))||(S.bmFirst?((+!!b.bm)-(+!!a.bm)):0)||(b.ts-a.ts)}
+ const f={upd:(a,b)=>b.ts-a.ts,updo:(a,b)=>a.ts-b.ts,new:(a,b)=>b.id-a.id,old:(a,b)=>a.id-b.id,
  title:(a,b)=>(a.title||"").localeCompare(b.title||"","ja"),len:(a,b)=>len(b.body)-len(a.body),lens:(a,b)=>len(a.body)-len(b.body)}[s]||((a,b)=>b.ts-a.ts);
  return S.bmFirst?(a,b)=>((+!!b.bm)-(+!!a.bm))||f(a,b):f}
 function renderMemo(){saveView();renderFolderBtn();$("#ttl").textContent="";
  const nf=TI.size+TE.size;
- $("#memo").innerHTML=`<input id="qs" placeholder="🔍 検索(タイトル・本文・タグ)" style="background:#fff" value="${esc(Q)}">
+ $("#memo").innerHTML=`<div class="qw"><input id="qs" placeholder="🔍 検索(タイトル・本文・タグ)" style="background:#fff;padding-right:40px" value="${esc(Q)}"><a id="qx" class="qx${Q?"":" hide"}">✕</a></div>
  <div class="row"><select id="so">${Object.entries(SORTS).map(([k,v])=>`<option value="${k}" ${S.sort===k?"selected":""}>${v}</option>`).join("")}</select>
  <button class="b ${nf?"y":"g"}" id="tgb" style="white-space:nowrap">🏷 タグ絞り込み${nf?`(${nf})`:""}</button></div>
  <div class="card ${TOPEN?"":"hide"}" id="tgp"><div class="row"><select id="tmode" style="background:#fff"><option value="or" ${TMODE==="or"?"selected":""}>どれか含む(OR)</option><option value="and" ${TMODE==="and"?"selected":""}>すべて含む(AND)</option></select><button class="b g" id="tclr">解除</button></div>
@@ -279,9 +285,9 @@ function renderMemo(){saveView();renderFolderBtn();$("#ttl").textContent="";
  triChips($("#tchips"),TI,TE,99,()=>renderMemo());
  const draw=()=>{const q=Q.toLowerCase();
   const list=S.memos.filter(m=>(fl==="all"||m.folder===fl)&&tagOK(m,TI,TE,TMODE)&&(!q||(m.title+m.body+m.tags.join(" ")).toLowerCase().includes(q))).sort(sorter());
-  $("#ml").innerHTML=(nf?`<div class="ok">絞り込み中: ${[...TI].map(t=>"✔"+esc(t)).join(" ")} ${[...TE].map(t=>"✖"+esc(t)).join(" ")}(${list.length}件)</div>`:"")+list.map(m=>{const o=OPEN.has(m.id),n=len(m.body);
+  $("#ml").innerHTML=(nf?`<div class="ok">絞り込み中: ${[...TI].map(t=>"✔"+esc(t)).join(" ")} ${[...TE].map(t=>"✖"+esc(t)).join(" ")}(${list.length}件)</div>`:"")+list.map((m,li)=>{const gh=(S.sort==="folder"&&fl==="all"&&(li===0||list[li-1].folder!==m.folder))?`<div class="fgh">📁 ${esc(m.folder)}</div>`:"";const o=OPEN.has(m.id),n=len(m.body);
    const rel=m.rel.map(id=>S.memos.find(x=>x.id===id)).filter(Boolean);
-   return `<div class="mc" id="m${m.id}"><div class="mh" data-t="${m.id}"><span class="hint">${o?"▲":"▼"}</span><h3>${m.bm?"★ ":""}${esc(m.title||"(無題)")}</h3><pre class="${o?"":"clamp"}">${esc(m.body)}</pre></div>
+   return gh+`<div class="mc" id="m${m.id}"><div class="mh" data-t="${m.id}"><span class="hint">${o?"▲":"▼"}</span><h3>${m.bm?"★ ":""}${esc(m.title||"(無題)")}</h3><pre class="${o?"":"clamp"}">${esc(m.body)}</pre></div>
    ${m.imgs.length?(o?m.imgs.map((s,i)=>`<img class="mi" data-z="${m.id}|${i}" src="${s}">`).join(""):`<div class="th" data-t="${m.id}">${m.imgs.slice(0,4).map(s=>`<img src="${s}">`).join("")}${m.imgs.length>4?`<small>+${m.imgs.length-4}</small>`:""}</div>`):""}
    ${m.tags.map(t=>`<span class="chip" data-tag="${esc(t)}">#${esc(t)}</span>`).join("")}<br>
    <small>📁 ${esc(m.folder)}・${n}字${n>LIMIT&&!m.sys?' <b style="color:#c33">⚠1000字超</b>':""}</small> <button class="b" data-a="cp" data-i="${m.id}">📋 コピペ</button>
@@ -300,7 +306,8 @@ function renderMemo(){saveView();renderFolderBtn();$("#ttl").textContent="";
    if(a==="wd")exportDocx([m],m.title||"メモ");
    if(a==="xl")exportXlsx([m],m.title||"メモ");
    if(a==="dl"&&confirm("削除しますか?(7日間は、設定のごみ箱から復元できます)")){S.trash.push({m:m,del:Date.now(),relBy:S.memos.filter(x=>x!==m&&x.rel.includes(m.id)).map(x=>x.id)});S.memos=S.memos.filter(x=>x!==m);S.memos.forEach(x=>{x.rel=x.rel.filter(r=>r!==m.id)});save();renderMemo();say("memo","del")}})};
- $("#qs").oninput=ev=>{Q=ev.target.value;saveView();draw()};
+ $("#qs").oninput=ev=>{Q=ev.target.value;saveView();$("#qx").classList.toggle("hide",!Q);draw()};
+ $("#qx").onclick=()=>{Q="";$("#qs").value="";$("#qx").classList.add("hide");saveView();draw();$("#qs").focus()};
  $("#so").onchange=e=>{S.sort=e.target.value;save();renderMemo()};
  $("#tgb").onclick=()=>{TOPEN=!TOPEN;renderMemo()};
  $("#tmode").onchange=e=>{TMODE=e.target.value;renderMemo()};
