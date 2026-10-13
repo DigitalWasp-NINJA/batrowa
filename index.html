@@ -82,6 +82,7 @@ body.pv #main,body.pv #fab,body.pv #fbtn,body.pv #hbtns{visibility:hidden}
 <div id="pvbar" class="hide"></div>
 <div id="modal"></div>
 <div id="zoom"><img id="zimg"></div>
+<input type="file" id="docin" accept=".docx,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" multiple hidden>
 <div id="ann" class="hide"><div class="annbox"><div class="annhd" id="annhd"></div><div id="annlist"></div><button class="b" id="annc" style="margin-top:10px;font-size:16px;padding:10px 24px">閉じる</button></div></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -108,6 +109,7 @@ const USAGE=`■ はじめに
 ・「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。
 ・「関連メモ」を最大4つ選ぶと、メモの末尾にタイトルが並び、タップで移動できます。
 ・「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。
+・「📥 取り込み」で、Word(.docx)やGoogleドキュメント(「Microsoft Word(.docx)」で書き出したもの)、テキスト(.txt)を、新しいメモとして読み込めます。
 ・「🕘履歴」で、編集前の文章に戻せます。対象は文章・タグ・フォルダです。
 
 ■ フォルダとタグ
@@ -161,6 +163,8 @@ function normalize(){
   if(!S.folders.includes("プロンプト"))S.folders.push("プロンプト");if(!S.tagList.includes("プロンプト"))S.tagList.push("プロンプト")}
  if(!S.migV5){S.migV5=1;const W=["蛆虫", "セックス", "自殺", "強姦", "キチガイ", "死ね", "キモオタ"];W.forEach(w=>{if(!S.ng.includes(w))S.ng.push(w)})}
  if(!S.migV6){S.migV6=1;const R=[["・並び替えは、更新順・作成順・タイトル順・文字数順から選べます。", "・並び替えは、更新順・作成順・タイトル順・フォルダ順・文字数順から選べます。"], ["・検索欄は、タイトル・本文・タグが対象です。", "・検索欄は、タイトル・本文・タグが対象です。右端の✕で、入力した検索語を一度に消せます。"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}})}
+ if(!S.migV7){S.migV7=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"&&!m.body.includes("「📥 取り込み」"))m.body=m.body.split("「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。").join("「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。\n・「📥 取り込み」で、Word(.docx)やGoogleドキュメント(「Microsoft Word(.docx)」で書き出したもの)、テキスト(.txt)を、新しいメモとして読み込めます。")})}
+ if(!S.migV8){S.migV8=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方")m.body=m.body.split("\n・「📥 取り込み」で、Word(.docx)やGoogleドキュメント(「Microsoft Word(.docx)」で書き出したもの)を、新しいメモとして読み込めます。").join("\n・「📥 取り込み」で、Word(.docx)やGoogleドキュメント(「Microsoft Word(.docx)」で書き出したもの)、テキスト(.txt)を、新しいメモとして読み込めます。")})}
  if(!S.migV4){S.migV4=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方")m.body=m.body.split("「全部まとめてコピペ」で、出たメモを一度にコピーできます。").join("「全部まとめてコピペ」で、出たメモを一度にコピペできます。タイトルは含まず、メモの内容だけをコピペします。")})}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
@@ -281,7 +285,7 @@ function renderMemo(){saveView();renderFolderBtn();$("#ttl").textContent="";
  <button class="b ${nf?"y":"g"}" id="tgb" style="white-space:nowrap">🏷 タグ絞り込み${nf?`(${nf})`:""}</button></div>
  <div class="card ${TOPEN?"":"hide"}" id="tgp"><div class="row"><select id="tmode" style="background:#fff"><option value="or" ${TMODE==="or"?"selected":""}>どれか含む(OR)</option><option value="and" ${TMODE==="and"?"selected":""}>すべて含む(AND)</option></select><button class="b g" id="tclr">解除</button></div>
  <small>タップ: 含める(緑)→除外(赤)→解除</small><div class="tgc" id="tchips"></div></div>
- <label style="color:#fff;font-size:13px"><input type="checkbox" id="bf" ${S.bmFirst?"checked":""}> ★を先頭に</label><div id="ml"></div>`;
+ <label style="color:#fff;font-size:13px"><input type="checkbox" id="bf" ${S.bmFirst?"checked":""}> ★を先頭に</label> <button class="b g" id="imp" style="font-size:12px;padding:5px 8px">📥 取り込み</button><div id="ml"></div>`;
  triChips($("#tchips"),TI,TE,99,()=>renderMemo());
  const draw=()=>{const q=Q.toLowerCase();
   const list=S.memos.filter(m=>(fl==="all"||m.folder===fl)&&tagOK(m,TI,TE,TMODE)&&(!q||(m.title+m.body+m.tags.join(" ")).toLowerCase().includes(q))).sort(sorter());
@@ -312,6 +316,7 @@ function renderMemo(){saveView();renderFolderBtn();$("#ttl").textContent="";
  $("#tgb").onclick=()=>{TOPEN=!TOPEN;renderMemo()};
  $("#tmode").onchange=e=>{TMODE=e.target.value;renderMemo()};
  $("#tclr").onclick=()=>{TI=new Set();TE=new Set();renderMemo()};
+ $("#imp").onclick=pickDocx;
  $("#bf").onchange=e=>{S.bmFirst=e.target.checked;save();renderMemo()};
  draw()}
 // 複製: 関連メモもコピーし、複製元を関連メモに追加(最大4つなので、元を先頭にして超過分は末尾から外す)
@@ -503,6 +508,7 @@ function renderSettings(){$("#ttl").textContent="設定";
  <div class="card"><b>🗑 ごみ箱</b><small><br>削除したメモを7日間保管します。7日を過ぎると自動で完全に消えます。(${S.trash.length}件)</small>
  ${S.trash.map((t,i)=>`<div class="memo"><b>${esc(t.m.title||"(無題)")}</b><br><small>削除: ${fmt(t.del)}・あと${Math.max(1,Math.ceil((t.del+7*864e5-Date.now())/864e5))}日・${len(t.m.body)}字・📁${esc(t.m.folder)}</small><br><button class="b" data-trr="${i}">♻ 復元</button><button class="b r" data-trd="${i}">完全に削除</button></div>`).join("")||"<br><small>ごみ箱は空です</small>"}
  ${S.trash.length?'<button class="b r" id="tre">ごみ箱を空にする</button>':""}</div>
+ <div class="card"><b>📥 ファイルの取り込み(Word・Googleドキュメント・テキスト)</b><small><br>すでにあるキャラシートなどの文書を、新しいメモとして読み込みます。文字だけを取り込み、1ファイルが1つのメモになります。ファイルは端末の中だけで処理し、外へは送りません。<br>・<b>Word</b>: 「.docx」で保存したファイル<br>・<b>Googleドキュメント</b>: 「ファイル」→「ダウンロード」→「Microsoft Word(.docx)」で書き出したファイル<br>・<b>テキスト</b>: 「.txt」のファイル(文字コードは自動で判定します)<br>・Pagesなど他の形式は、Wordかテキストで書き出してから読み込んでください。</small><br><button class="b y" id="imp2">📥 ファイルを選んで取り込む</button></div>
  <div class="card"><b>フォルダ管理</b><small><br>フォルダを追加・削除できます。✕で削除すると、中のメモは「未分類」に移動します(「未分類」は削除できません)。</small><div>
  ${S.folders.map((f,i)=>`<span class="chip">📁 ${esc(f)} (${S.memos.filter(m=>m.folder===f).length}) ${f==="未分類"?"":`<a data-fd="${i}" style="color:#c33;font-weight:bold;cursor:pointer">✕</a>`}</span>`).join("")}</div>
  <div class="row"><input id="nfol" placeholder="新しいフォルダ名"><button class="b" id="nfadd" style="white-space:nowrap">追加</button></div>
@@ -573,6 +579,7 @@ function renderSettings(){$("#ttl").textContent="設定";
  $("#dly").onchange=e=>{S.delay=Math.min(60,Math.max(1,+e.target.value||5));save();say("settings","change")};
  document.querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>{const[s,e]=b.dataset.pv.split("|");openPV(s,e)});
  bindBulk();
+ $("#imp2").onclick=pickDocx;
  document.querySelectorAll(".ln").forEach(i=>i.onchange=()=>{setn(i.dataset.s,i.dataset.e,"line",i.value);say("settings","navSet")});
  document.querySelectorAll(".im").forEach(i=>i.onchange=()=>resize(i.files[0],1200,d=>{setn(i.dataset.s,i.dataset.e,"img",d);renderSettings();say("settings","navSet")}));
  document.querySelectorAll("[data-x]").forEach(i=>i.onclick=()=>{setn(i.dataset.s,i.dataset.e,"img",null);renderSettings();say("settings","navSet")});
@@ -808,5 +815,113 @@ function openPVAll(){const first=()=>{for(const [s,e] of allEvents()){const v=im
  $("#pao").onclick=()=>{allEvents().forEach(([s,e])=>{S.pos[s+"."+e]={...P}});save();close();alert("すべての場面の位置をそろえました")};
  $("#pax").onclick=close}
 gcNavImgs();
+// ================= ファイルの取り込み(Word .docx・Googleドキュメント・テキスト .txt) =================
+// .docx はZIP形式です。ブラウザ標準の解凍機能で本文のXMLを取り出し、文字だけをメモにします(端末の中だけで処理します)。
+const IMPMAX=50000;
+const xmlDec=t=>t.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi,(_,e)=>{if(e[0]==="#")return String.fromCodePoint(e[1].toLowerCase()==="x"?parseInt(e.slice(2),16):+e.slice(1));return{amp:"&",lt:"<",gt:">",quot:'"',apos:"'"}[e.toLowerCase()]});
+function xmlParse(s){const root={n:"#",a:{},c:[]},st=[root];
+ const re=/<!--[\s\S]*?-->|<!\[CDATA\[([\s\S]*?)\]\]>|<\?[\s\S]*?\?>|<\/([^\s>]+)\s*>|<([^\s\/>!?]+)((?:\s+[^\s=\/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>|([^<]+)/g;let m;
+ while((m=re.exec(s))){const cur=st[st.length-1];
+  if(m[1]!==undefined)cur.c.push(m[1]);
+  else if(m[2]!==undefined){if(st.length>1)st.pop()}
+  else if(m[3]!==undefined){const a={};(m[4]||"").replace(/([^\s=\/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,(_,k,v1,v2)=>{a[k.split(":").pop()]=xmlDec(v1!==undefined?v1:v2)});
+   const nd={n:m[3].split(":").pop(),a,c:[]};cur.c.push(nd);if(!m[5])st.push(nd)}
+  else if(m[6]!==undefined)cur.c.push(xmlDec(m[6]))}
+ return root}
+async function unzipEntry(buf,wanted){const dv=new DataView(buf),u8=new Uint8Array(buf);let e=-1;
+ for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-22-65535);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break}}
+ if(e<0)throw new Error("zip");
+ const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const dec=new TextDecoder();
+ for(let k=0;k<n;k++){if(p+46>buf.byteLength||dv.getUint32(p,true)!==0x02014b50)break;
+  const meth=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+  const name=dec.decode(u8.subarray(p+46,p+46+nl));
+  if(name===wanted){const ln=dv.getUint16(lo+26,true),lx=dv.getUint16(lo+28,true),ds=lo+30+ln+lx,raw=u8.subarray(ds,ds+cs);
+   if(meth===0)return raw;
+   if(meth===8){if(typeof DecompressionStream==="undefined")throw new Error("nodecomp");
+    return new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer())}
+   throw new Error("method")}
+  p+=46+nl+xl+cl}
+ return null}
+const DXSKIP=new Set(["pPr","rPr","drawing","pict","object","AlternateContent","instrText","delText","footnoteReference","endnoteReference","sectPr","tblPr","tblGrid","trPr","tcPr","proofErr","bookmarkStart","bookmarkEnd","del"]);
+const isN=c=>typeof c!=="string";
+function dxRuns(n,rels){let s="";for(const c of n.c){if(!isN(c)||DXSKIP.has(c.n))continue;const k=c.n;
+ if(k==="t")s+=c.c.filter(x=>!isN(x)).join("");
+ else if(k==="tab")s+="\t";else if(k==="br"||k==="cr")s+="\n";else if(k==="noBreakHyphen")s+="-";
+ else if(k==="hyperlink"){const t=dxRuns(c,rels),u=c.a.id&&rels[c.a.id];s+=t+((u&&t&&!t.includes(u)&&!t.includes(u.replace(/^https?:\/\//,"")))?` (${u})`:"")}
+ else s+=dxRuns(c,rels)}return s}
+function dxPara(p,rels){let t=dxRuns(p,rels);const ppr=p.c.find(c=>isN(c)&&c.n==="pPr"),num=ppr&&ppr.c.find(c=>isN(c)&&c.n==="numPr");
+ if(num&&t.trim()){const il=num.c.find(c=>isN(c)&&c.n==="ilvl"),id=num.c.find(c=>isN(c)&&c.n==="numId");
+  if(!(id&&id.a.val==="0"))t="　".repeat(Math.min(5,+(il&&il.a.val)||0))+"・"+t}
+ return t}
+function dxBlocks(n,rels,out){for(const c of n.c){if(!isN(c))continue;
+ if(c.n==="p")out.push(dxPara(c,rels));
+ else if(c.n==="tbl"){for(const r of c.c){if(!isN(r)||r.n!=="tr")continue;const cells=[];
+   for(const tc of r.c){if(!isN(tc)||tc.n!=="tc")continue;const sub=[];dxBlocks(tc,rels,sub);cells.push(sub.map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean).join(" "))}
+   out.push(cells.join("\t"))}}
+ else if(c.n==="sdt"||c.n==="sdtContent"||c.n==="customXml"||c.n==="smartTag")dxBlocks(c,rels,out)}}
+function dxRels(xml){const r={},root=xmlParse(xml),rs=root.c.find(c=>isN(c)&&c.n==="Relationships");
+ if(rs)rs.c.forEach(c=>{if(isN(c)&&c.n==="Relationship"&&/hyperlink$/.test(c.a.Type||"")&&c.a.TargetMode==="External")r[c.a.Id]=c.a.Target});return r}
+function docxToText(xml,rels){const root=xmlParse(xml),doc=root.c.find(c=>isN(c)&&c.n==="document"),body=doc&&doc.c.find(c=>isN(c)&&c.n==="body");
+ if(!body)throw new Error("xml");const out=[];dxBlocks(body,rels,out);
+ return out.join("\n").replace(/\u00a0/g," ").replace(/[\u200b\u200c\u200d\ufeff]/g,"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim()}
+async function parseDocx(file){
+ if(file.size>5e6)throw new Error("ファイルが大きすぎます(5MBまで)");
+ const buf=await file.arrayBuffer(),u8=new Uint8Array(buf);
+ if(u8[0]===0xD0&&u8[1]===0xCF)throw new Error("古い形式(.doc)か、パスワード付きのファイルです。Wordで「.docx」として保存し直してください");
+ if(!(u8[0]===0x50&&u8[1]===0x4B))throw new Error("Word(.docx)のファイルではありません");
+ let x;try{x=await unzipEntry(buf,"word/document.xml")}catch(e){
+  if(e.message==="nodecomp")throw new Error("お使いのブラウザは、このファイルの読み込みに対応していません。ブラウザを更新するか、本文をコピペしてください");
+  throw new Error("ファイルを読み取れませんでした(壊れているか、暗号化されています)")}
+ if(!x)throw new Error("Word(.docx)として読めませんでした。.pagesなど、別の形式ではありませんか?");
+ let rels={};try{const r=await unzipEntry(buf,"word/_rels/document.xml.rels");if(r)rels=dxRels(new TextDecoder("utf-8").decode(r))}catch(e){}
+ let t;try{t=docxToText(new TextDecoder("utf-8").decode(x),rels)}catch(e){throw new Error("本文を読み取れませんでした")}
+ if(!t)throw new Error("本文が空でした(画像だけの文書は取り込めません)");
+ return t}
+// テキスト(.txt): 文字コードを自動判定します(UTF-8 / UTF-16(BOM付き) / Shift_JIS / EUC-JP)
+async function parseTxt(file){
+ if(file.size>2e6)throw new Error("ファイルが大きすぎます(2MBまで)");
+ const u8=new Uint8Array(await file.arrayBuffer());
+ const dec=(enc,fatal)=>{try{return new TextDecoder(enc,{fatal}).decode(u8)}catch(e){return null}};
+ let t=null;
+ if(u8[0]===0xEF&&u8[1]===0xBB&&u8[2]===0xBF)t=dec("utf-8",false);
+ else if(u8[0]===0xFF&&u8[1]===0xFE)t=dec("utf-16le",false);
+ else if(u8[0]===0xFE&&u8[1]===0xFF)t=dec("utf-16be",false);
+ else{if(u8.subarray(0,4000).includes(0))throw new Error("テキストファイルではありません");
+  t=dec("utf-8",true);if(t===null)t=dec("shift_jis",true);if(t===null)t=dec("euc-jp",true);if(t===null)t=dec("utf-8",false)}
+ if(t===null)throw new Error("文字コードを判定できませんでした");
+ t=t.replace(/^\uFEFF/,"").replace(/\r\n?/g,"\n").replace(/\u0000/g,"").replace(/[ \t]+\n/g,"\n").trim();
+ if(!t)throw new Error("本文が空でした");
+ return t}
+const parseAny=f=>/\.txt$/i.test(f.name)?parseTxt(f):parseDocx(f);
+async function importFiles(files){const items=[],errs=[];
+ for(const f of files){
+  if(!/\.(docx|txt)$/i.test(f.name)){errs.push(`${f.name}: 対応しているのは .docx と .txt だけです(Wordは「.docx」で保存、Googleドキュメントは「ダウンロード→Microsoft Word(.docx)」で書き出してください)`);continue}
+  try{let b=await parseAny(f),cut=false;if(len(b)>IMPMAX){b=[...b].slice(0,IMPMAX).join("");cut=true}
+   items.push({name:f.name,title:f.name.replace(/\.(docx|txt)$/i,""),body:b,on:true,cut})}catch(e){errs.push(`${f.name}: ${e.message}`)}}
+ if(!items.length&&!errs.length)return;
+ if(!items.length){alert(errs.join("\n"));return}
+ openImport(items,errs)}
+function openImport(items,errs){const M=$("#modal"),tags=new Set();let folder=(fl!=="all"&&S.folders.includes(fl))?fl:"未分類";
+ const render=()=>{const n=items.filter(i=>i.on).length;
+  M.innerHTML=`<div class="card"><b>📥 取り込みの確認</b><small><br>内容を確認して「取り込む」を押すと、新しいメモとして追加されます。元のファイルは変わりません。Wordの画像・色・文字の太さは取り込まれません。</small>
+  ${errs.map(e=>`<div class="warn">⚠ ${esc(e)}</div>`).join("")}
+  ${items.map((it,i)=>{const w=check({title:it.title,body:it.body,sys:0,tags:[],rel:[]}),dup=S.memos.some(m=>m.title===it.title.trim());
+   return `<div class="hv"><label><input type="checkbox" data-ion="${i}" style="width:auto" ${it.on?"checked":""}> <b>取り込む</b></label> <small>${len(it.body)}字${it.cut?`(長いため先頭${IMPMAX}字まで)`:""}</small>
+   <input data-it="${i}" value="${esc(it.title)}" placeholder="タイトル"><pre style="max-height:70px">${esc(it.body.slice(0,200))}${it.body.length>200?"…":""}</pre>
+   ${dup?`<div class="warn">同じタイトルのメモが、すでにあります</div>`:""}${w.map(x=>`<div class="warn">⚠ ${esc(x)}</div>`).join("")}</div>`}).join("")}
+  <small>保存先のフォルダ</small><select id="impf">${S.folders.map(f=>`<option ${f===folder?"selected":""}>${esc(f)}</option>`).join("")}</select>
+  <small>🏷 タグ(任意・タップで選択)</small><div class="tgc" id="impt">${allTags().map(t=>`<span class="chip ${tags.has(t)?"sel":""}" data-ct2="${esc(t)}">${esc(t)}</span>`).join("")}</div>
+  <button class="b" id="impok">取り込む(${n}件)</button> <button class="b g" id="impno">キャンセル</button></div>`;
+  M.querySelectorAll("[data-ion]").forEach(c=>c.onchange=()=>{items[+c.dataset.ion].on=c.checked;render()});
+  M.querySelectorAll("[data-it]").forEach(i=>{i.oninput=()=>{items[+i.dataset.it].title=i.value};i.onchange=()=>render()});
+  $("#impf").onchange=e=>{folder=e.target.value};
+  M.querySelectorAll("[data-ct2]").forEach(c=>c.onclick=()=>{const t=c.dataset.ct2;tags.has(t)?tags.delete(t):tags.add(t);c.classList.toggle("sel")});
+  $("#impno").onclick=()=>{M.style.display="none"};
+  $("#impok").onclick=()=>{const sel=items.filter(i=>i.on&&i.body.trim());if(!sel.length)return alert("取り込むファイルを選んでください");
+   const now=Date.now();sel.forEach((it,i)=>{const id=now+i;S.memos.push({id,title:(it.title||"").trim()||it.name,body:it.body,folder,tags:[...tags],imgs:[],rel:[],bm:false,ts:id,hist:[]})});
+   save();M.style.display="none";if(tab==="memo")renderMemo();say("memo","save");alert(`${sel.length}件のメモを取り込みました`)}};
+ render();M.style.display="flex"}
+function pickDocx(){$("#docin").click()}
+$("#docin").onchange=e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)importFiles(fs)};
 wall();loadBubbleFont(applyBubbleAll);go("memo");setTimeout(checkAnnounce,300);setTimeout(askStripImgs,500);
 </script></body></html>
