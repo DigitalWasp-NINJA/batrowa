@@ -29,28 +29,6 @@ title: ◆お知らせ◆　避難所リンクな
 https://discord.gg/H4Ws42zBY
 =====
 on: 1
-id: 1791683349287
-title: ◆たしかめる◆　10/11(日) 募集アンナウンスーン　◆重点したい◆ 
----
-バトロワ継承を騙る者◆71aTje/yfE
-"南米四国志"をやります
-19∶30より合図なし先着順 31枠＋お詫び枠の石流龍
-詳しい要項は↓
-https://bbs.animanch.com/board/7472850/3/?res=583
-ルールは
-https://writening.net/page?sDLCUf
-
-
-以下終了済み　オツカレサマドスエ！
-キーぼう
-"星降りの大会"をやります
-https://bbs.animanch.com/board/7467991/
-12時ピッタリから15秒間でGランク格闘場での敵モンスターマスター3人
-12時30分から15秒間で各マスターの手持ち魔物を3体ずつ
-ルール
-https://writening.net/page?eckdHb
-=====
-on: 1
 id: 1791104008108
 title: 更新アンナウンスーン
 ---
