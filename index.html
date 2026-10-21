@@ -105,7 +105,7 @@ const USAGE=`■ はじめに
 
 ■ メモ帳
 ・左下の「＋追加」で新しいメモを作ります。入力すると自動で保存されるので、保存ボタンはありません。終わったら「閉じる」を押します。
-・一覧には、タイトルと最初の5行だけが出ます。タップすると全文が開き、ブックマーク・編集・履歴・クローン・削除のボタンが出ます。
+・一覧には、タイトルと最初の5行だけが出ます。タップすると全文が開き、ブックマーク・履歴・クローン・削除のボタンが出ます(「✏ 編集」は、閉じたままでも押せます)。
 ・「📋コピペ」で、本文をそのままコピーできます。貼り付けるだけで使えます。
 ・「関連メモ」を最大4つ選ぶと、メモの末尾にタイトルが並び、タップで移動できます。
 ・「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。
@@ -124,7 +124,7 @@ const USAGE=`■ はじめに
 ・並び替えは、更新順・作成順・タイトル順・フォルダ順・文字数順から選べます。
 
 ■ 注意メッセージ
-保存の際に、NGワード・リンクの重複・本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると、赤い注意を出します。保存は止まりません。
+保存の際に、NGワード・同じメモ内でのリンクの重複・本文1000文字超・画像リンクのarc抜き忘れ(img/arc)を見つけると、赤い注意を出します。保存は止まりません。
 
 ■ ダイス(右上の🎲)
 ・左上の「📁」でフォルダを最大10個、タグを最大10個まで選びます。何も選ばなければ、全メモが対象です。
@@ -165,6 +165,7 @@ function normalize(){
  if(!S.migV6){S.migV6=1;const R=[["・並び替えは、更新順・作成順・タイトル順・文字数順から選べます。", "・並び替えは、更新順・作成順・タイトル順・フォルダ順・文字数順から選べます。"], ["・検索欄は、タイトル・本文・タグが対象です。", "・検索欄は、タイトル・本文・タグが対象です。右端の✕で、入力した検索語を一度に消せます。"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}})}
  if(!S.migV7){S.migV7=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"&&!m.body.includes("「📥 取り込み」"))m.body=m.body.split("「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。").join("「📑クローン」で、メモをそっくりクローン(複製)します。クローン元は、自動で関連メモに入ります。\n・「📥 取り込み」で、Word(.docx)やGoogleドキュメント(「Microsoft Word(.docx)」で書き出したもの)、テキスト(.txt)を、新しいメモとして読み込めます。")})}
  if(!S.migV8){S.migV8=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方")m.body=m.body.split("\n・「📥 取り込み」で、Word(.docx)やGoogleドキュメント(「Microsoft Word(.docx)」で書き出したもの)を、新しいメモとして読み込めます。").join("\n・「📥 取り込み」で、Word(.docx)やGoogleドキュメント(「Microsoft Word(.docx)」で書き出したもの)、テキスト(.txt)を、新しいメモとして読み込めます。")})}
+ if(!S.migV9){S.migV9=1;const R=[["NGワード・リンクの重複・", "NGワード・同じメモ内でのリンクの重複・"], ["ブックマーク・編集・履歴・クローン・削除のボタンが出ます", "ブックマーク・履歴・クローン・削除のボタンが出ます(「✏ 編集」は、閉じたままでも押せます)"]];S.memos.forEach(m=>{if(m.sys&&m.title==="使い方"){R.forEach(([a,b])=>{m.body=m.body.split(a).join(b)})}})}
  if(!S.migV4){S.migV4=1;S.memos.forEach(m=>{if(m.sys&&m.title==="使い方")m.body=m.body.split("「全部まとめてコピペ」で、出たメモを一度にコピーできます。").join("「全部まとめてコピペ」で、出たメモを一度にコピペできます。タイトルは含まず、メモの内容だけをコピペします。")})}S.anns=Array.isArray(S.anns)?S.anns:[];["annRead","annSeen","annHide"].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.hostDraft=S.hostDraft||{title:"",text:"",bubble:{}};purgeTrash();
  S.memos.forEach(m=>{if(m.sys){m.imgs=[];if(m.title==="使い方"){m.body=m.body.replace("・画像は、編集画面の「🖼 画像を追加」から、1つのメモに10枚まで入れられます。\n","").replace("対象は文章・タグ・フォルダで、画像は対象外です。","対象は文章・タグ・フォルダです。").replace(/\n\n■ 下の画像[\s\S]*$/,"");if(!m.body.includes("・ごみ箱:"))m.body=m.body.replace("・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。","・引き継ぎ: パスワード付きのファイルで、別の端末へデータを移せます。\n・ごみ箱: 削除したメモを7日間保管します。設定画面から復元できます。7日を過ぎると完全に消えます。\n・吹き出し: 吹き出しの画像・書体・文字色を変えられます。")}}});
  S.trash.forEach(t=>{if(t.m&&t.m.sys)t.m.imgs=[]});
@@ -229,8 +230,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const urls=t=>(t.match(/https?:\/\/[^\s]+/g)||[]).map(u=>u.replace(/\/$/,""));
 function check(m){if(m.sys)return[];const w=[],t=m.title+"\n"+m.body;
  const hit=S.ng.filter(n=>n&&t.includes(n));if(hit.length)w.push("NGワードの可能性: "+hit.join("、"));
- const my=urls(m.body),others=S.memos.filter(x=>x!==m).flatMap(x=>urls(x.body));
- const dup=my.filter((u,i)=>others.includes(u)||my.indexOf(u)!==i);if(dup.length)w.push("リンクが重複: "+[...new Set(dup)].join(" , "));
+ const my=urls(m.body);
+ const dup=my.filter((u,i)=>my.indexOf(u)!==i);if(dup.length)w.push("同じメモ内でリンクが重複: "+[...new Set(dup)].join(" , "));
  const n=len(m.body);if(n>LIMIT)w.push(`キャラシートが${LIMIT}文字をオーバーしています(現在${n}文字)`);
  const _t=m.title+"\n"+m.body,_u=_t.match(/https?:\/\/[A-Za-z0-9\-._~:\/?#@!$&'()*+,;=%]+/g)||[];
  const arc=[..._u.filter(u=>/img\/arc/i.test(u)||(/^https?:\/\/img[A-Za-z0-9\-]*\./i.test(u)&&/\/arc(\/|\?|#|$)/i.test(u))),...(_t.match(/[^\s]*img\/arc[^\s]*/ig)||[])];
@@ -294,8 +295,8 @@ function renderMemo(){saveView();renderFolderBtn();$("#ttl").textContent="";
    return gh+`<div class="mc" id="m${m.id}"><div class="mh" data-t="${m.id}"><span class="hint">${o?"▲":"▼"}</span><h3>${m.bm?"★ ":""}${esc(m.title||"(無題)")}</h3><pre class="${o?"":"clamp"}">${esc(m.body)}</pre></div>
    ${m.imgs.length?(o?m.imgs.map((s,i)=>`<img class="mi" data-z="${m.id}|${i}" src="${s}">`).join(""):`<div class="th" data-t="${m.id}">${m.imgs.slice(0,4).map(s=>`<img src="${s}">`).join("")}${m.imgs.length>4?`<small>+${m.imgs.length-4}</small>`:""}</div>`):""}
    ${m.tags.map(t=>`<span class="chip" data-tag="${esc(t)}">#${esc(t)}</span>`).join("")}<br>
-   <small>📁 ${esc(m.folder)}・${n}字${n>LIMIT&&!m.sys?' <b style="color:#c33">⚠1000字超</b>':""}</small> <button class="b" data-a="cp" data-i="${m.id}">📋 コピペ</button>
-   ${o?`<button class="b y" data-a="bm" data-i="${m.id}">${m.bm?"★解除":"☆ ブックマーク"}</button><button class="b g" data-a="ed" data-i="${m.id}">編集</button><button class="b g" data-a="dp" data-i="${m.id}">📑 クローン</button><button class="b g" data-a="hs" data-i="${m.id}">🕘 履歴(${m.hist.length})</button><button class="b" data-a="wd" data-i="${m.id}">📄 Word</button><button class="b" data-a="xl" data-i="${m.id}">📊 表</button><button class="b r" data-a="dl" data-i="${m.id}">削除</button>
+   <small>📁 ${esc(m.folder)}・${n}字${n>LIMIT&&!m.sys?' <b style="color:#c33">⚠1000字超</b>':""}</small> <button class="b" data-a="cp" data-i="${m.id}">📋 コピペ</button> <button class="b g" data-a="ed" data-i="${m.id}">✏ 編集</button>
+   ${o?`<button class="b y" data-a="bm" data-i="${m.id}">${m.bm?"★解除":"☆ ブックマーク"}</button><button class="b g" data-a="dp" data-i="${m.id}">📑 クローン</button><button class="b g" data-a="hs" data-i="${m.id}">🕘 履歴(${m.hist.length})</button><button class="b" data-a="wd" data-i="${m.id}">📄 Word</button><button class="b" data-a="xl" data-i="${m.id}">📊 表</button><button class="b r" data-a="dl" data-i="${m.id}">削除</button>
    ${rel.length?`<div class="rel"><b>関連メモ</b><div class="rg">${rel.map(r=>`<div data-j="${r.id}">${esc(r.title||"(無題)")}</div>`).join("")}</div></div>`:""}`:""}</div>`}).join("")||`<div class="card"><small>該当するメモがありません。左下の「＋追加」から作成できます。</small></div>`;
   document.querySelectorAll("#ml [data-t]").forEach(d=>d.onclick=()=>{const i=+d.dataset.t;OPEN.has(i)?OPEN.delete(i):OPEN.add(i);draw()});
   document.querySelectorAll("#ml [data-z]").forEach(d=>d.onclick=()=>{zoom(d.src)});
@@ -500,7 +501,7 @@ let RDAYS=new Set();
 const DN=["日","月","火","水","木","金","土"];
 function renderSettings(){$("#ttl").textContent="設定";
  purgeTrash();const used=(usedChars()/1e6).toFixed(1);
- let h=annCardHTML()+`<div class="card"><b>📲 引き継ぎ・端末間共有</b><small><br>サーバーを使わず、パスワード付きのファイルでデータを移します。自動同期ではありません。メモ・タグ・設定・立ち絵・吹き出し設定がすべて対象です。</small><br>
+ let h=annCardHTML()+discordCardHTML()+`<div class="card"><b>📲 引き継ぎ・端末間共有</b><small><br>サーバーを使わず、パスワード付きのファイルでデータを移します。自動同期ではありません。メモ・タグ・設定・立ち絵・吹き出し設定がすべて対象です。</small><br>
  <button class="b" id="tx">書き出す(パスワード発行)</button>
  <div style="margin-top:6px"><input type="file" id="tfile"><textarea id="ttext" style="min-height:60px" placeholder="ファイルが選べない場合は、コピーした引き継ぎデータをここに貼り付けます"></textarea><input id="tpw2" placeholder="パスワード"><label><input type="radio" name="tm" value="merge" checked> 統合(新しい方を残す)</label> <label><input type="radio" name="tm" value="replace"> 置き換え</label><br><button class="b y" id="tim">読み込む</button></div>
  <small>保存データ: 約${used}MB / 目安5MB</small></div>
@@ -630,6 +631,7 @@ function linkify(raw){return esc(raw).replace(/https?:\/\/[A-Za-z0-9\-._~:\/?#\[
 function annItemsHTML(list,withBtn){return list.map((a,i)=>`<div class="annitem">${a.title?`<div class="annti">${esc(a.title)}</div>`:""}<div class="bubs annt" data-ab="${i}">${linkify(a.text)}</div><small class="annd">${/^\d{12,}$/.test(a.id)?fmt(+a.id):""}${withBtn?`<a class="annh" data-hide="${esc(a.id)}">非表示にする</a>`:""}</small></div>`).join("")}
 function applyAnnBubbles(root,list,pfx){list.forEach((a,i)=>{const e=root.querySelector(`[data-ab="${i}"]`);applyBubbleSpec(e,a.bubble,pfx+i);loadFontSpec(a.bubble,pfx+i)})}
 // オプションの一番上: 独立した「お知らせ欄」(この欄だけスクロールできます)
+function discordCardHTML(){return `<div class="card" id="dscard" style="text-align:center"><a href="https://discord.gg/vzpFXnCjcY" target="_blank" rel="noopener noreferrer" style="display:block;font-weight:bold;font-size:17px;line-height:1.7;color:#5865F2;text-decoration:underline;padding:6px 0">それは興奮する真の<br>バトロワDiscordサーバー</a></div>\n `}
 function annCardHTML(){if(!S.anns.length)return"";const vis=S.anns.filter(a=>!S.annHide.includes(a.id)),hid=S.anns.length-vis.length;
  return `<div class="card" id="anncard"><b>📢 お知らせ</b> <small>(${vis.length}件)</small>${vis.length?`<div class="annlist" id="annset">${annItemsHTML(vis,true)}</div>`:"<br><small>表示するお知らせはありません</small>"}${hid?`<small><a id="annshow" class="annh" style="margin-left:0">非表示にした${hid}件を再表示</a></small>`:""}</div>\n `}
 function bindAnnList(){const root=$("#annset");
