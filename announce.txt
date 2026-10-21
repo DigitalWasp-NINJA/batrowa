@@ -28,14 +28,6 @@ https://bbs.animanch.com/board/7492778/
 https://writening.net/page?BYEyDb
 =====
 on: 1
-id: 1791716967803
-title: ◆お知らせ◆　避難所リンクな
----
-あにまんの不具合が酷いのでこちらにもdiscordの避難所リンクを貼っておく…ケイビインだ
-↓
-https://discord.gg/H4Ws42zBY
-=====
-on: 1
 id: 1791104008108
 title: 更新アンナウンスーン
 ---
